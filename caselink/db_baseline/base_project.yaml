@@ -1,5 +1,2 @@
-"RHEL7":
-  name: "RedHatEnterpriseLinux7"
-
-"RHEL6":
-  name: "RedHatEnterpriseLinux6"
+"VTP":
+  name: "VirtTestProject"

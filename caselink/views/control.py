@@ -213,9 +213,10 @@ def create_maitai_request(request):
         except (WorkflowException, WorkflowDisabledException) as error:
             ret.setdefault(workitem_id, {})['message'] = error.message
         else:
+            wi = WorkItem.objects.get(pk=workitem_id)
             wi.maitai_id = res['id']
             wi.need_automation = True
-        wi.save()
+            wi.save()
 
         ret.setdefault(workitem_id, {})['maitai_id'] = wi.maitai_id
 

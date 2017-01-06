@@ -45,6 +45,7 @@ class WorkItemDetail(generics.RetrieveUpdateDestroyAPIView):
             except Exception as error:
                 LOGGER.error("Failed to add comment for WI %s, Jira task %s",
                              instance.id, instance.jira_id)
+        instance.save()
         instance.error_check(depth=1)
 
 

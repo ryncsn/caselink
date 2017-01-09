@@ -9,6 +9,7 @@
     "bootstrap": "^3.3.7",
     "bootstrap-webpack": "0.0.5",
     "css-loader": "^0.25.0",
+    "d3": "^4.4.1",
     "datatables-mixins": "git+https://github.com/ryncsn/datatables-mixins.git",
     "datatables.net": "^1.10.12",
     "datatables.net-bs": "^1.10.12",

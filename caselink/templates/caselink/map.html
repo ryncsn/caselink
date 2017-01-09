@@ -1,0 +1,22 @@
+{% extends "caselink/index.html" %}
+{% load staticfiles %}
+{% load bootstrap %}
+{% block title %} Linkage map {% endblock %}
+{% block content %}
+<div id="linkage-map">
+    <div class="container">
+        <div class="panel panel-default,success,info,warn,danger">
+            <div class="panel-heading">
+                <div class="panel-title">Panel title</div>
+            </div>
+            <div class="panel-body">
+                <svg id="linkage-map-svg" class="d3-map" width="1024" height="800">
+                </svg>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block footer %}
+<script src="{% static "dist/map.js" %}" type="text/javascript" charset="utf-8"></script>
+{% endblock %}

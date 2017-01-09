@@ -23,6 +23,7 @@ urlpatterns = [
     url(r'^$', views.index, name='index'),
     url(r'^m2a$', views.m2a, name='m2a'),
     url(r'^a2m$', views.a2m, name='a2m'),
+    url(r'^map$', views.linkage_map, name='map'),
     url(r'^data$', views.data, name='data'),
     url(r'^pattern-matcher/(?P<pattern>[a-zA-Z0-9\-\._]+)$', views.pattern_matcher, name='pattern-matcher'),
 

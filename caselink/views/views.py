@@ -18,6 +18,11 @@ def m2a(request):
     return render(request, 'caselink/m2a.html', {'maitai_automation_form': form})
 
 
+def linkage_map(request):
+    form = MaitaiAutomationRequest()
+    return render(request, 'caselink/map.html')
+
+
 def index(request):
     return render(request, 'caselink/index.html')
 

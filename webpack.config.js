@@ -11,6 +11,7 @@ module.exports = {
     // Page specified entry.
     a2m: './a2m.js',
     m2a: './m2a.js',
+    map: './map.js',
     index: './index.js',
   },
   output: {

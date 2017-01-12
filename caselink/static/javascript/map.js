@@ -15,7 +15,7 @@ var vm = new Vue({
     $.get("data?type=m2a")
       .done(function(data){
         let manualcases = data.data.filter((a) => {return a.cases.length > 0;}),
-          autoDict = manualcases.reduce((a, b) => {(b.cases.reduce((x, y) => {a[y]?a[y].count += 1: a[y] = {case: y, count: 1};}, null)); return a;}, {}),
+          autoDict = manualcases.reduce((a, b) => {(b.cases.reduce((x, y) => {return a[y]?a[y].count += 1: a[y] = {case: y, count: 1};}, null)); return a;}, {}),
           manualDict = manualcases.reduce(function(a, b){a[b.polarion] = b; return a;}, {}),
           autocases = d3.values(autoDict);
 

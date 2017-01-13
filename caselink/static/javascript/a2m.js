@@ -24,10 +24,12 @@ $(document).ready(function() {
       {
         column: 'Component',
         render: htmlify,
+        strict: true,
       },
       {
         column: 'Framework',
         render: htmlify,
+        strict: true,
       },
       {
         column: 'Documents',

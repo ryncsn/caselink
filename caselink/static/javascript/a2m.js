@@ -7,13 +7,16 @@ var navBar = require('./mixins/nav-bar.js');
 var vm = new Vue({
   el: "#caselink",
   mixins: [navBar],
-  data: {},
+  data: {
+    dt: null,
+  },
   methods: {},
   watch: {},
   delimiters: ['${', '}'],
   mounted: function() {
     "use strict";
-    var table = $('#sortable-table').DataSearchTable( {
+    let vm = this;
+    vm.dt = $('#sortable-table').DataSearchTable( {
       BaseTable: [dtMixins.DataTableJumpPageButton],
       "ajax": "data?type=a2m",
       "iDisplayLength": 20,

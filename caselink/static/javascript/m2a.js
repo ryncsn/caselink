@@ -127,10 +127,10 @@ var vm = new Vue({
           var maitai_id = data[polarion].maitai_id;
           var message = data[polarion].message;
           if(maitai_id){
-            var row = table.row(rowSelector);
+            var row = vm.dt.row(rowSelector);
             var d = row.data();
             d.maitai_id = maitai_id;
-            table.row(row).data(d).draw(false);
+            vm.dt.row(row).data(d).draw(false);
             alert("Maitai create for " + polarion + ", ID: " + maitai_id);
           }
           else{
@@ -156,33 +156,33 @@ var vm = new Vue({
       });
     });
 
-    var table = $('#sortable-table').DataSearchTable({
+    vm.dt = $('#sortable-table').DataSearchTable({
       select: true,
       BaseTable: [dtMixins.DataTableWithChildRow, dtMixins.DataTableWithInlineButton, dtMixins.DataTableJumpPageButton],
       buttons: [
         {
           text: 'Select All Filted',
           action: function ( e, dt, node, config ) {
-            var filterSet = table.$('tr', {filter:'applied'});
+            var filterSet = vm.dt.$('tr', {filter:'applied'});
             filterSet.each(function(){
-              table.row(this).select();
+              vm.dt.row(this).select();
             });
           }
         },
         {
           text: 'Edit',
           action: function ( e, dt, node, config ) {
-            var filterSet = table.$('tr', {selected:true});
+            var filterSet = vm.dt.$('tr', {selected:true});
             if(filterSet.length > 1){
               alert("Linkage edit with multi-select is not supported yet.");
               return;
             }
             filterSet.each(function(){
               //with select: single, only one row is processed.
-              var d = table.row(this).data();
+              var d = vm.dt.row(this).data();
               var linkage_list = linkage_modal.find('#linkage_list').empty();
               linkage_modal.data('deleted', []);
-              linkage_modal.data('row', table.row(this));
+              linkage_modal.data('row', vm.dt.row(this));
               $.get("/manual/" + d.polarion + "/link/").done(function(data){
                 $.each(data, function(idx, ele){
                   var new_item = linkage_list_item.clone();
@@ -203,13 +203,13 @@ var vm = new Vue({
         {
           text: 'Create Automated Request',
           action: function ( e, dt, node, config ) {
-            var filterSet = table.$('tr', {selected:true});
+            var filterSet = vm.dt.$('tr', {selected:true});
             var checkFlag = true;
             caseInput.val('');
             labelInput.val(labelDefault);
             var count = filterSet.length;
             filterSet.each(function(){
-              var row = table.row(this);
+              var row = vm.dt.row(this);
               var d = row.data();
               if(d.automation !== "notautomated"){
                 alert("Create automation request for a " + d.automation + " is not allowed.");
@@ -239,7 +239,7 @@ var vm = new Vue({
       ],
       initComplete: function(){
         var wi_select = $('#linkage_manualcase');
-        table.column(function(idx, data, node){
+        vm.dt.column(function(idx, data, node){
           return $(node).text() == 'Polarion';
         }).data().each(function(d, j){
           wi_select.append('<option value="' + d + '">' + d + '</option>');

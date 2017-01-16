@@ -11,7 +11,18 @@ var vm = new Vue({
     dt: null,
   },
   methods: {
+    getManualCaseData: function(caseName){
+      return $.get(`data?pk=${caseName}`);
+    },
     refreshManualCase: function(caseName){
+      let manualCaseRowSelector = function(idx, data, node){
+        return data.polarion == caseName;
+      };
+      let row = this.dt.row(manualCaseRowSelector);
+      this.getManualCaseData(caseName)
+        .then(function(data){
+          row.data(data.data[0]).draw();
+        });
     },
   },
   watch: {},
@@ -91,11 +102,7 @@ var vm = new Vue({
         alert("Failed to save the linkage data.");
       }).always(function(){
         button.prop('disabled', false);
-        $.get('data?pk=' + linkage_modal.find('#linkage_manualcase').val())
-          .done(function(data){
-            linkage_modal.data('row').data(data.data[0]).draw();
-            linkage_modal.data('row').child.hide();
-          });
+        vm.refreshManualCase(linkage_modal.find('#linkage_manualcase').val());
       });
     });
 
@@ -118,19 +125,12 @@ var vm = new Vue({
       var button = $(this);
       var posting = $.post("/control/maitai_request/", form.serialize());
       button.prop('disabled', true);
-      var polarion;
-      var rowSelector = function(idx, data, node){
-        return data.polarion == polarion;
-      };
       posting.done(function(data){
-        for(polarion in data){
+        for(var polarion in data){
+          vm.refreshManualCase(polarion);
           var maitai_id = data[polarion].maitai_id;
           var message = data[polarion].message;
           if(maitai_id){
-            var row = vm.dt.row(rowSelector);
-            var d = row.data();
-            d.maitai_id = maitai_id;
-            vm.dt.row(row).data(d).draw(false);
             alert("Maitai create for " + polarion + ", ID: " + maitai_id);
           }
           else{

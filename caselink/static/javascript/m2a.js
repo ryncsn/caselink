@@ -12,7 +12,7 @@ var vm = new Vue({
   },
   methods: {
     getManualCaseData: function(caseName){
-      return $.get(`data?pk=${caseName}`);
+      return $.get(`/data/m2a/${caseName}/`);
     },
     refreshManualCase: function(caseName){
       let manualCaseRowSelector = function(idx, data, node){
@@ -253,7 +253,7 @@ var vm = new Vue({
           });
         });
       },
-      "ajax": "data",
+      "ajax": "/data/m2a/",
       "iDisplayLength": 20,
       "bAutoWidth": false,
       "selectorColumns": [

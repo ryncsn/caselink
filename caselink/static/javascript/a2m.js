@@ -18,7 +18,7 @@ var vm = new Vue({
     let vm = this;
     vm.dt = $('#sortable-table').DataSearchTable( {
       BaseTable: [dtMixins.DataTableJumpPageButton],
-      "ajax": "data?type=a2m",
+      "ajax": "/data/a2m/",
       "iDisplayLength": 20,
       "bAutoWidth": false,
       "selectorColumns": [

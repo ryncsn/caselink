@@ -52,6 +52,20 @@ def _dictfetchall(cursor):
     ]
 
 
+def _merge_table(pk, base_list, joined_list, keys=[]):
+    """
+    Extend table with unique pk using another table with duplicated pk, for handling m2m in raw sql,
+    They should both be list of dict, ordered by pk for performance issue.
+    All attrs will be extended should be list.
+    """
+    pos = 0
+    for entry in joined_list:
+        while base_list[pos][pk] != entry[pk]:
+            pos += 1
+        for key in keys:
+            base_list[pos].get(key).append(entry[key])
+
+
 def m2a_data(request, pk=None):
     json_list = []
     cursor = connection.cursor()
@@ -116,12 +130,7 @@ def m2a_data(request, pk=None):
     """
     sql, params = (sql % "and caselink_workitem.id = %s", [pk]) if pk else (sql % "", [])
     cursor.execute(sql, params)
-
-    pos = 0
-    for workitem in _dictfetchall(cursor):
-        while json_list[pos]['polarion'] != workitem['polarion']:
-            pos += 1
-        json_list[pos].get('errors').append(workitem['errors'])
+    _merge_table('polarion', json_list, _dictfetchall(cursor), ['errors'])
 
     sql = """
     select
@@ -136,12 +145,7 @@ def m2a_data(request, pk=None):
     """
     sql, params = (sql % "and caselink_workitem.id = %s", [pk]) if pk else (sql % "", [])
     cursor.execute(sql, params)
-
-    pos = 0
-    for workitem in _dictfetchall(cursor):
-        while json_list[pos]['polarion'] != workitem['polarion']:
-            pos += 1
-        json_list[pos].get('documents').append(workitem['documents'])
+    _merge_table('polarion', json_list, _dictfetchall(cursor), ['documents'])
 
     return JsonResponse({'data': json_list})
 
@@ -169,13 +173,11 @@ def a2m_data(request):
 
     for autocase in _dictfetchall(cursor):
         autocase_id = autocase['case']
-        framework = autocase['framework']
-        pr = autocase['pr']
         if len(json_list) == 0 or json_list[-1]['case'] != autocase_id:
             json_list.append({
                 'case': autocase_id,
-                'framework': framework,
-                'pr': pr,
+                'framework': autocase['framework'],
+                'pr': autocase['pr'],
                 'components': [],
                 'title': [],
                 'polarion': [],
@@ -199,18 +201,13 @@ def a2m_data(request):
         order by "case";
         """
     )
-
-    pos = 0;
-    for autocase in _dictfetchall(cursor):
-        while json_list[pos]['case'] != autocase['case']:
-            pos += 1
-        json_list[pos].get('errors').append(autocase['errors'])
+    _merge_table('case', json_list, _dictfetchall(cursor), ['errors'])
 
     cursor.execute(
         """
         select
         caselink_autocase.id AS "case",
-        caselink_autocase_components.component_id AS "component"
+        caselink_autocase_components.component_id AS "components"
         from
         (
         caselink_autocase
@@ -218,12 +215,7 @@ def a2m_data(request):
         order by "case";
         """
     )
-
-    pos = 0;
-    for autocase in _dictfetchall(cursor):
-        while json_list[pos]['case'] != autocase['case']:
-            pos += 1
-        json_list[pos].get('components').append(autocase['component'])
+    _merge_table('case', json_list, _dictfetchall(cursor), ['components'])
 
     cursor.execute(
         """
@@ -239,11 +231,6 @@ def a2m_data(request):
         order by "case";
         """
     )
-
-    pos = 0;
-    for autocase in _dictfetchall(cursor):
-        while json_list[pos]['case'] != autocase['case']:
-            pos += 1
-        json_list[pos].get('documents').append(autocase['documents'])
+    _merge_table('case', json_list, _dictfetchall(cursor), ['documents'])
 
     return JsonResponse({'data': json_list})

@@ -12,6 +12,7 @@ module.exports = {
     a2m: './a2m.js',
     m2a: './m2a.js',
     map: './map.js',
+    'black-list': './black-list.js',
     index: './index.js',
   },
   output: {

@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction, models
 
 
-def test_pattern_match(pattern, casename):
+def _test_pattern_match(pattern, casename):
     """
     Test if a autocase match with the name pattern.
     """
@@ -252,7 +252,7 @@ class Linkage(models.Model):
         """
         Test if a autocase match with the name pattern.
         """
-        return test_pattern_match(self.autocase_pattern, auto_case.id)
+        return _test_pattern_match(self.autocase_pattern, auto_case.id)
 
     def autolink(self):
         for case in AutoCase.objects.all():
@@ -301,11 +301,32 @@ class Bug(models.Model):
     Linked with ManualCase directly.
     """
     id = models.CharField(max_length=255, primary_key=True)
-    manualcases = models.ManyToManyField('WorkItem', blank=True, related_name='bugs')
-    errors = models.ManyToManyField(Error, blank=True, related_name='bugs')
-    #autocase_failures defined in AutoCaseFailure
 
-    _min_dump = ('id', 'manualcases', )
+    _min_dump = ('id', )
+
+    def __str__(self):
+        return "<Bug %s>" % self.id
+
+
+class BlackListEntry(models.Model):
+    status = models.CharField(max_length=255, null=True)
+    description = models.TextField(blank=True)
+    bugs = models.ManyToManyField('Bug', blank=True, related_name='black_list_entries')
+    manualcases = models.ManyToManyField('WorkItem', blank=True, related_name='black_list_entries')
+    autocase_failures = models.ManyToManyField('AutoCaseFailure', related_name='black_list_entries')
+    errors = models.ManyToManyField(Error, blank=True, related_name='black_list_entries')
+
+    _min_dump = ('status', 'description', 'bugs', 'manualcases', 'autocase_failures' )
+
+    _types = ['bug', 'bug-skip', 'case-update-skip', 'case-update', ] #TODO
+    _bug_types = ['bug', 'bug-skip', 'case-update-skip', 'case-update', ] #TODO
+
+    def clean(self):
+        assert(self._bug_types in self._types)
+        if self.status not in self._types:
+            raise ValidationError(_('Unsupported AutoCase Failure Type' + str(self.type)))
+        if self.status in self._bug_types and not self.bugs:
+            raise ValidationError(_('Entry\'s bugs attribute can\'t be empty with status %s.' % self.status))
 
     @property
     def autocases(self):
@@ -320,35 +341,27 @@ class Bug(models.Model):
         pass
 
     def __str__(self):
-        return self.id
+        return self.status + self.description
 
 
 class AutoCaseFailure(models.Model):
-    autocases = models.ManyToManyField(AutoCase, related_name="failures", blank=True)
-    type = models.CharField(max_length=255)
+    autocases = models.ManyToManyField(AutoCase, related_name="autocase_failures", blank=True)
     framework = models.ForeignKey(Framework, on_delete=models.PROTECT, null=True,
                                   related_name='autocase_failures')
-    bug = models.ForeignKey('Bug', related_name='autocase_failures', blank=True, null=True)
     failure_regex = models.CharField(max_length=65535)
     autocase_pattern = models.CharField(max_length=65535)
-    errors = models.ManyToManyField(Error, blank=True, related_name='autocase_failures')
+    errors = models.ManyToManyField(Error, blank=False, related_name='autocase_failures')
 
-    _min_dump = ('type', 'framework', 'bug', 'failure_regex', 'autocase_pattern', )
+    _min_dump = ('framework', 'bug', 'failure_regex', 'autocase_pattern', )
 
     class Meta:
         unique_together = ("failure_regex", "autocase_pattern",)
-
-    def clean(self):
-        if self.type not in ['BUG', 'CASE-UPDATE']:
-            raise ValidationError(_('Unsupported AutoCase Failure Type' + str(self.type)))
-        if self.type == 'BUG' and not self.bug:
-            raise ValidationError(_('Bug id required.'))
 
     def test_match(self, auto_case):
         """
         Test if a autocase match with the name pattern.
         """
-        return test_pattern_match(self.autocase_pattern, auto_case.id)
+        return _test_pattern_match(self.autocase_pattern, auto_case.id)
 
     def autolink(self):
         for case in AutoCase.objects.all():

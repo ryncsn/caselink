@@ -18,6 +18,11 @@ def m2a(request):
     return render(request, 'caselink/m2a.html', {'maitai_automation_form': form})
 
 
+def bl(request):
+    form = MaitaiAutomationRequest()
+    return render(request, 'caselink/black-list.html')
+
+
 def linkage_map(request):
     form = MaitaiAutomationRequest()
     return render(request, 'caselink/map.html')
@@ -232,5 +237,109 @@ def a2m_data(request):
         """
     )
     _merge_table('case', json_list, _dictfetchall(cursor), ['documents'])
+
+    return JsonResponse({'data': json_list})
+
+
+def bl_data(request):
+    json_list = []
+    cursor = connection.cursor()
+
+    sql = """
+    select
+    caselink_blacklistentry.id AS "id",
+    caselink_blacklistentry.status AS "status",
+    caselink_blacklistentry.description AS "description",
+    caselink_error.message as "errors"
+    from
+    ((
+    caselink_blacklistentry
+    left join caselink_blacklistentry_errors on caselink_blacklistentry_errors.blacklistentry_id = caselink_blacklistentry.id)
+    left join caselink_error on caselink_error.id = caselink_blacklistentry_errors.error_id)
+    order by "id"
+    """
+    cursor.execute(sql)
+
+    for entry in _dictfetchall(cursor):
+        entry_id = entry['id']
+        if len(json_list) == 0 or json_list[-1]['id'] != entry_id:
+            json_list.append({
+                'id': entry_id,
+                'status': entry['status'],
+                'description': entry['description'],
+                'bugs': [],
+                'errors': [],
+                'manualcases': [],
+                'autocase_failures': [],
+            })
+        for key in ['errors', ]:
+            if entry[key]:
+                json_list[-1].get(key).append(entry[key])
+
+    cursor.execute(
+        """
+        select
+        caselink_blacklistentry.id AS "id",
+        caselink_workitem.id AS "manualcases"
+        from
+        ((
+        caselink_blacklistentry
+        inner join caselink_blacklistentry_manualcases on caselink_blacklistentry_manualcases.blacklistentry_id = caselink_blacklistentry.id)
+        leff join caselink_workitem on caselink_workitem.id = caselink_blacklistentry_manualcases.workitem_id)
+        order by "id";
+        """
+    )
+    _merge_table('id', json_list, _dictfetchall(cursor), ['manualcases'])
+
+    cursor.execute(
+        """
+        select
+        caselink_blacklistentry.id AS "id",
+        caselink_bug.id AS "bugs"
+        from
+        ((
+        caselink_blacklistentry
+        inner join caselink_blacklistentry_bugs on caselink_blacklistentry_bugs.blacklistentry_id = caselink_blacklistentry.id)
+        leff join caselink_bug on caselink_bug.id = caselink_blacklistentry_bugs.bug_id)
+        order by "id";
+        """
+    )
+    _merge_table('id', json_list, _dictfetchall(cursor), ['bugs'])
+
+    cursor.execute(
+        """
+        select
+        caselink_blacklistentry.id AS "id",
+        caselink_autocasefailure.autocase_pattern AS "autocase_pattern",
+        caselink_autocasefailure.failure_regex AS "failure_regexes",
+        caselink_autocase.id AS "autocases"
+        from
+        ((((
+        caselink_blacklistentry
+        inner join caselink_blacklistentry_autocase_failures on caselink_blacklistentry_autocase_failures.blacklistentry_id = caselink_blacklistentry.id)
+        leff join caselink_autocasefailure on caselink_autocasefailure.id = caselink_blacklistentry_autocase_failures.autocasefailure_id)
+        left join caselink_autocasefailure_autocases on caselink_autocasefailure_autocases.autocasefailure_id = caselink_autocasefailure.id)
+        left join caselink_autocase on caselink_autocase.id = caselink_autocasefailure_autocases.autocase_id)
+        order by "id", "autocase_pattern", "failure_regexes";
+        """
+    )
+
+    pos, pk = 0, "id"
+    for entry in _dictfetchall(cursor):
+        while json_list[pos][pk] != entry[pk]:
+            pos += 1
+        autocase_failures = json_list[pos]['autocase_failures']
+        last_failure = autocase_failures and autocase_failures[-1]
+        autocase_pattern = entry['autocase_pattern']
+        failure_regexes = entry['failure_regexes']
+        autocase = entry['autocases']
+        if not last_failure or last_failure['autocase_pattern'] != autocase_pattern or last_failure['failure_regexes'] != failure_regexes:
+            autocase_failures.append({
+                'autocase_pattern': autocase_pattern,
+                'failure_regex': failure_regexes,
+                'autocases': [autocase] if autocase else [],
+            })
+        else:
+            last_failure['autocases'].append(autocase)
 
     return JsonResponse({'data': json_list})

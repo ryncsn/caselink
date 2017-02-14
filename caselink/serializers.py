@@ -69,6 +69,12 @@ class AutoCaseFailureSerializer(serializers.ModelSerializer):
         model = AutoCaseFailure
 
 
+class BlackListEntrySerializer(serializers.ModelSerializer):
+    class Meta:
+        fields = '__all__'
+        model = BlackListEntry
+
+
 class FrameworkSerializer(serializers.ModelSerializer):
     class Meta:
         fields = '__all__'

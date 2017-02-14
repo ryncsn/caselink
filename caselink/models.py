@@ -375,4 +375,4 @@ class AutoCaseFailure(models.Model):
         pass
 
     def __str__(self):
-        return self.autocase_pattern
+        return "<'%s' failing with '%s'>" % (self.autocase_pattern, self.failure_regex)

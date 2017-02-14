@@ -159,6 +159,18 @@ class BugDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = BugSerializer
 
 
+class BlackList(generics.ListCreateAPIView):
+    queryset = BlackListEntry.objects.all()
+    serializer_class = BlackListEntrySerializer
+    filter_backends = (filters.DjangoFilterBackend,)
+
+
+class BlackListDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = BlackListEntry.objects.all()
+    serializer_class = BlackListEntrySerializer
+
+
+
 # Shortcuts RESTful APIs
 
 class WorkItemLinkageList(APIView):

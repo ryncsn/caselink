@@ -48,6 +48,9 @@ urlpatterns = [
     url(r'^bug/$', restful.BugList.as_view(), name='bug'),
     url(r'^bug/(?P<pk>[a-zA-Z0-9\-\._]+)/$', restful.BugDetail.as_view(), name='bug_detail'),
 
+    url(r'^blacklist/$', restful.BlackList.as_view(), name='bl'),
+    url(r'^blacklist/(?P<pk>[a-zA-Z0-9\-\._]+)/$', restful.BlackListDetail.as_view(), name='bl_detail'),
+
     url(r'^framework/$', restful.FrameworkList.as_view(), name='framework'),
     url(r'^framework/(?P<pk>[a-zA-Z0-9\-\._]+)/$', restful.FrameworkDetail.as_view(), name='framework_detail'),
 

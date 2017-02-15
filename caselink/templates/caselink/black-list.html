@@ -67,18 +67,18 @@
                 <label for="bl-description">Description</label>
                 <input type="text" class="form-control" id="bl-description" placeholder="Description, detail, comment for the black-list entry" v-model="description" >
 
-                <div id="bug-list">
-                    <div v-for="n in bugs.length" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
-                        <h3>Bug</h3>
+                <div id="bug-list" style="margin-top: 10px; padding-top: 10px;">
+                    <h3>Bug</h3>
+                    <div v-for="n in bugs.length">
                         <button type="button" class="close" aria-label="Close" v-on:click="delBug(bugs[n-1])"><span aria-hidden="true">&times;</span></button>
                         <input type="text" class="form-control" placeholder="Bug ID on Buzzilla, empty if it's a case-updating entry" v-model="bugs[n-1]">
                     </div>
-                    <button type="button" class="btn btn-success" v-on:click="addBug">Add</button>
+                    <button type="button" class="btn btn-success form-control" v-on:click="addBug">Add</button>
                 </div>
 
-                <div id="autocase-failures-list">
+                <div id="autocase-failures-list" style="margin-top: 10px; padding-top: 10px;">
                     <h3>Auto Case Failure</h3>
-                    <div v-for="item in autocase_failures" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+                    <div v-for="item in autocase_failures">
                         <button type="button" class="close" aria-label="Close" v-on:click="delAutocaseFailure(item)"><span aria-hidden="true">&times;</span></button>
 
                         <label for="linkage-framework">Framework</label>
@@ -93,17 +93,17 @@
                         <label for="linked-testcase">Linked Auto Testcases</label>
                         <div for="linked-testcase" class="well">${item.autocases.join("\n")}</div>
                     </div>
-                    <button type="button" class="btn btn-success" v-on:click="addAutocaseFailure">Add</button>
+                    <button type="button" class="btn btn-success form-control" v-on:click="addAutocaseFailure">Add</button>
                 </div>
 
-                <div id="Manual Cases" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+                <div id="Manual Cases" style="margin-top: 10px; padding-top: 10px;">
                     <h3>Manual Cases</h3>
-                    <div v-for="n in manualcases.length" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+                    <div v-for="n in manualcases.length">
                         <button type="button" class="close" aria-label="Close" v-on:click="delManualCase(manualcases[n-1])"><span aria-hidden="true">&times;</span></button>
                         <label for="workitemID">Workitem ID</label>
                         <input id="workitemID" type="text" class="form-control" v-model="manualcases[n-1]" placeholder="Workitem ID to match">
                     </div>
-                    <button type="button" class="btn btn-success" v-on:click="addManualCase">Add</button>
+                    <button type="button" class="btn btn-success form-control" v-on:click="addManualCase">Add</button>
                 </div>
 
             </div>

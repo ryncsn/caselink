@@ -125,6 +125,7 @@ class AutoCaseFailureList(generics.ListCreateAPIView):
     queryset = AutoCaseFailure.objects.all()
     serializer_class = AutoCaseFailureSerializer
     filter_backends = (filters.DjangoFilterBackend,)
+    filter_fields = ('autocases', 'failure_regex', 'autocase_pattern', 'errors')
 
     def perform_create(self, serializer):
         instance = serializer.save()

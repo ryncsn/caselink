@@ -24,14 +24,26 @@ Vue.component('bl-entry-form', {
     abandon: function() {
     },
     addAutocaseFailure: function() {
+      this.autocase_failures.push({
+        autocases: [ ],
+        autocase_pattern: "",
+        failure_regex: "*"
+      });
     },
     addManualCase: function() {
-    },
-    delAutocaseFailure: function(item) {
-    },
-    delManualCase: function(item) {
+      this.manualcases.push('');
     },
     addBug: function() {
+      this.bugs.push('');
+    },
+    delAutocaseFailure: function(item) {
+      this.autocase_failures.splice(this.autocase_failures.indexOf(item), 1);
+    },
+    delManualCase: function(item) {
+      this.manualcases.splice(this.manualcases.indexOf(item), 1);
+    },
+    delBug: function(item) {
+      this.bugs.splice(this.bugs.indexOf(item), 1);
     },
   },
   data: function() {

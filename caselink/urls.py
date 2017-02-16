@@ -27,7 +27,7 @@ urlpatterns = [
     url(r'^black-list$', views.bl, name='a2m'),
     url(r'^data/m2a/((?P<pk>[a-zA-Z0-9\-]+)/)?$', views.m2a_data, name='m2a_data'),
     url(r'^data/a2m/$', views.a2m_data, name='a2m_data'),
-    url(r'^data/bl/$', views.bl_data, name='a2m_data'),
+    url(r'^data/bl/((?P<pk>[a-zA-Z0-9\-]+)/)?', views.bl_data, name='bl_data'),
     url(r'^pattern-matcher/(?P<pattern>[a-zA-Z0-9\-\._]+)$', views.pattern_matcher, name='pattern-matcher'),
 
     #RESTful APIs

@@ -241,24 +241,26 @@ def a2m_data(request):
     return JsonResponse({'data': json_list})
 
 
-def bl_data(request):
+def bl_data(request, pk=None):
     json_list = []
     cursor = connection.cursor()
 
     sql = """
-    select
-    caselink_blacklistentry.id AS "id",
-    caselink_blacklistentry.status AS "status",
-    caselink_blacklistentry.description AS "description",
-    caselink_error.message as "errors"
-    from
-    ((
-    caselink_blacklistentry
-    left join caselink_blacklistentry_errors on caselink_blacklistentry_errors.blacklistentry_id = caselink_blacklistentry.id)
-    left join caselink_error on caselink_error.id = caselink_blacklistentry_errors.error_id)
-    order by "id"
+        select
+        caselink_blacklistentry.id AS "id",
+        caselink_blacklistentry.status AS "status",
+        caselink_blacklistentry.description AS "description",
+        caselink_error.message as "errors"
+        from
+        ((
+        caselink_blacklistentry
+        left join caselink_blacklistentry_errors on caselink_blacklistentry_errors.blacklistentry_id = caselink_blacklistentry.id)
+        left join caselink_error on caselink_error.id = caselink_blacklistentry_errors.error_id)
+        where 1 = 1 %s
+        order by "id"
     """
-    cursor.execute(sql)
+    sql, params = (sql % "and caselink_blacklistentry.id = %s", [pk]) if pk else (sql % "", [])
+    cursor.execute(sql, params)
 
     for entry in _dictfetchall(cursor):
         entry_id = entry['id']
@@ -276,8 +278,7 @@ def bl_data(request):
             if entry[key]:
                 json_list[-1].get(key).append(entry[key])
 
-    cursor.execute(
-        """
+    sql = """
         select
         caselink_blacklistentry.id AS "id",
         caselink_workitem.id AS "manualcases"
@@ -286,13 +287,14 @@ def bl_data(request):
         caselink_blacklistentry
         inner join caselink_blacklistentry_manualcases on caselink_blacklistentry_manualcases.blacklistentry_id = caselink_blacklistentry.id)
         leff join caselink_workitem on caselink_workitem.id = caselink_blacklistentry_manualcases.workitem_id)
+        where 1 = 1 %s
         order by "id";
-        """
-    )
+    """
+    sql, params = (sql % "and caselink_blacklistentry.id = %s", [pk]) if pk else (sql % "", [])
+    cursor.execute(sql, params)
     _merge_table('id', json_list, _dictfetchall(cursor), ['manualcases'])
 
-    cursor.execute(
-        """
+    sql = """
         select
         caselink_blacklistentry.id AS "id",
         caselink_bug.id AS "bugs"
@@ -301,13 +303,14 @@ def bl_data(request):
         caselink_blacklistentry
         inner join caselink_blacklistentry_bugs on caselink_blacklistentry_bugs.blacklistentry_id = caselink_blacklistentry.id)
         leff join caselink_bug on caselink_bug.id = caselink_blacklistentry_bugs.bug_id)
+        where 1 = 1 %s
         order by "id";
-        """
-    )
+    """
+    sql, params = (sql % "and caselink_blacklistentry.id = %s", [pk]) if pk else (sql % "", [])
+    cursor.execute(sql, params)
     _merge_table('id', json_list, _dictfetchall(cursor), ['bugs'])
 
-    cursor.execute(
-        """
+    sql = """
         select
         caselink_blacklistentry.id AS "id",
         caselink_autocasefailure.autocase_pattern AS "autocase_pattern",
@@ -320,9 +323,11 @@ def bl_data(request):
         leff join caselink_autocasefailure on caselink_autocasefailure.id = caselink_blacklistentry_autocase_failures.autocasefailure_id)
         left join caselink_autocasefailure_autocases on caselink_autocasefailure_autocases.autocasefailure_id = caselink_autocasefailure.id)
         left join caselink_autocase on caselink_autocase.id = caselink_autocasefailure_autocases.autocase_id)
+        where 1 = 1 %s
         order by "id", "autocase_pattern", "failure_regexes";
-        """
-    )
+    """
+    sql, params = (sql % "and caselink_blacklistentry.id = %s", [pk]) if pk else (sql % "", [])
+    cursor.execute(sql, params)
 
     pos, pk = 0, "id"
     for entry in _dictfetchall(cursor):

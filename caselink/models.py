@@ -350,9 +350,9 @@ class AutoCaseFailure(models.Model):
                                   related_name='autocase_failures')
     failure_regex = models.CharField(max_length=65535)
     autocase_pattern = models.CharField(max_length=65535)
-    errors = models.ManyToManyField(Error, blank=False, related_name='autocase_failures')
+    errors = models.ManyToManyField(Error, blank=True, related_name='autocase_failures')
 
-    _min_dump = ('framework', 'bug', 'failure_regex', 'autocase_pattern', )
+    _min_dump = ('framework', 'failure_regex', 'autocase_pattern', )
 
     class Meta:
         unique_together = ("failure_regex", "autocase_pattern",)

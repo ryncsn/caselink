@@ -3,9 +3,11 @@ var htmlify = require('./lib/htmlify.js');
 var p = require('./lib/sharedParameters.js');
 var Vue = require('vue');
 var navBar = require('./mixins/nav-bar.js');
+var _api = require('./mixins/api.js');
 
 function _cleanEntryData() {
   return {
+    id: null,
     status: '',
     bugs: [],
     description: '',
@@ -16,12 +18,36 @@ function _cleanEntryData() {
 
 Vue.component('bl-entry-form', {
   template: "#bl-entry-form",
+  mixins: [_api],
   delimiters: ['${', '}'],
-  props: ['data', ],
+  props: ['basedata', ],
   methods: {
     save: function() {
+      let submitData = JSON.parse(JSON.stringify(this.$data));
+      let failureIds = [];
+
+      let bugsCreated = this.bugs.map(bug => {
+        return this._getOrCreateBug({id: bug});
+      });
+      let failuresCreated = this.autocase_failures.map(failure => {
+        return this._getOrCreateFailure(failure)
+          .then(data => failureIds.push(data.id));
+      });
+
+      submitData.autocase_failures = failureIds;
+      submitData.manualcases = this.manualcases.filter(s => s.length > 0);
+
+      let op = () => {
+        return (this.id) ? this._restAjax('PUT', `/blacklist/${this.id}/`, submitData) : this._restAjax('POST', `/blacklist/`, submitData);
+      };
+      Promise.all(bugsCreated.concat(failuresCreated)).then(op)
+        .then(data => {
+          this.$emit("save", data.id);
+        });
     },
     abandon: function() {
+      this.$emit("abandon", null);
+      this.reset();
     },
     addAutocaseFailure: function() {
       this.autocase_failures.push({
@@ -45,6 +71,11 @@ Vue.component('bl-entry-form', {
     delBug: function(item) {
       this.bugs.splice(this.bugs.indexOf(item), 1);
     },
+    reset: function(){
+      for (var key of ['id', 'status', 'bugs', 'description', 'autocase_failures', 'manualcases']){
+        this.$data[key] = JSON.parse(JSON.stringify((this.basedata || this.$data)[key]));
+      }
+    }
   },
   data: function() {
     return _cleanEntryData();
@@ -67,39 +98,50 @@ Vue.component('bl-entry-form', {
     },
   },
   watch: {
-    data: function(val){
-      console.log("Change");
-      for (var key of ['status', 'bugs', 'description', 'autocase_failures', 'manualcases']){
-        this[key] = (this.data || _cleanEntryData())[key];
-      }
-    },
+    basedata: function(val){ this.reset(); },
   }
 });
 
 var vm = new Vue({
   el: "#caselink",
-  mixins: [navBar],
+  mixins: [navBar, _api],
   data: {
     dt: null,
     editEntryData: {},
   },
   methods: {
     getEntryData: function(entryID){
-      return $.get(`?pk=${caseName}`);
+      return $.get(`data/bl/${entryID}/`).then(data => {
+        return data.data[0];
+      });
     },
-    refreshEntryData: function(caseName){
+    refreshEntryData: function(id){
       let manualCaseRowSelector = function(idx, data, node){
-        return data.polarion == caseName;
+        return data.id == id;
       };
       let row = this.dt.row(manualCaseRowSelector);
-      this.getManualCaseData(caseName)
-        .then(function(data){
-          row.data(data.data[0]).draw();
-        });
+      if(row.data()) {
+        this.getEntryData(id)
+          .then(function(data){
+            row.data(data).draw();
+          });
+      } else {
+        this.getEntryData(id)
+          .then(data => {
+            this.dt.row.add(data);
+            this.dt.draw();
+          });
+      }
     },
     editEntryModal: function(status, data){
       this.editEntryData = data;
       $('#bl-entry-add-modal').modal(status); //TODO
+    },
+    doneEditing: function(id){
+      $('#bl-entry-add-modal').modal('hide'); //TODO
+      if(id){
+        this.refreshEntryData(id);
+      }
     }
   },
   delimiters: ['${', '}'],

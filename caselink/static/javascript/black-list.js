@@ -180,6 +180,23 @@ var vm = new Vue({
             vm.editEntryModal('show', null);
           }
         },
+        {
+          text: 'Delete',
+          action: function ( e, dt, node, config ) {
+            var filterSet = vm.dt.$('tr', {selected:true});
+            if(filterSet.length > 0){
+              let check = confirm(`You are going to delete ${filterSet.length} entrys, sure?`);
+              if(check){
+                filterSet.each(function(entry) {
+                  let row = vm.dt.row(this);
+                  vm._restAjax('DELETE', `/blacklist/${row.data().id}/`)
+                    .catch(err => alert(`Delete failed with ${err}`))
+                    .then(_ => {row.remove(); vm.dt.draw();});
+                });
+              }
+            }
+          }
+        },
       ],
       initComplete: function(){
       },

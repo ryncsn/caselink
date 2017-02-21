@@ -50,7 +50,7 @@ except NameError:
 
 def load_polarion(project, spaces):
     """
-    Load all Manual cases with given project and spave, return a dictionary,
+    Load all Workitems with given project and spave, return a dictionary,
     keys are workitem id, values are dicts presenting workitem attributes.
     """
     # If called as a celery task...
@@ -362,7 +362,7 @@ def sync_with_polarion():
         wi = models.WorkItem.objects.get(id=wi_id)
         related_wis = wi.error_related.all()
         if not any([getattr(wi, data) for data in wi._user_data]):
-            if not wi.caselinks.exists():
+            if not wi.linkages.exists():
                 wi.delete()
                 for wi_r in related_wis:
                     wi_r.error_check()

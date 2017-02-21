@@ -271,7 +271,7 @@ def bl_data(request, pk=None):
                 'description': entry['description'],
                 'bugs': [],
                 'errors': [],
-                'manualcases': [],
+                'workitesm': [],
                 'autocase_failures': [],
             })
         for key in ['errors', ]:
@@ -281,18 +281,18 @@ def bl_data(request, pk=None):
     sql = """
         select
         caselink_blacklistentry.id AS "id",
-        caselink_workitem.id AS "manualcases"
+        caselink_workitem.id AS "workitems"
         from
         ((
         caselink_blacklistentry
-        inner join caselink_blacklistentry_manualcases on caselink_blacklistentry_manualcases.blacklistentry_id = caselink_blacklistentry.id)
-        leff join caselink_workitem on caselink_workitem.id = caselink_blacklistentry_manualcases.workitem_id)
+        inner join caselink_blacklistentry_workitems on caselink_blacklistentry_workitems.blacklistentry_id = caselink_blacklistentry.id)
+        leff join caselink_workitem on caselink_workitem.id = caselink_blacklistentry_workitems.workitem_id)
         where 1 = 1 %s
         order by "id";
     """
     sql, params = (sql % "and caselink_blacklistentry.id = %s", [pk]) if pk else (sql % "", [])
     cursor.execute(sql, params)
-    _merge_table('id', json_list, _dictfetchall(cursor), ['manualcases'])
+    _merge_table('id', json_list, _dictfetchall(cursor), ['workitems'])
 
     sql = """
         select

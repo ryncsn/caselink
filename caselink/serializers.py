@@ -31,12 +31,12 @@ class LinkageSerializer(serializers.ModelSerializer):
 
 
 class WorkItemSerializer(serializers.ModelSerializer):
-    caselinks = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    linkages = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     bugs = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     patterns = serializers.SerializerMethodField()
 
     def get_patterns(self, wi):
-        return [link.autocase_pattern for link in wi.caselinks.all()]
+        return [link.autocase_pattern for link in wi.linkages.all()]
 
     class Meta:
         fields = '__all__'
@@ -44,8 +44,8 @@ class WorkItemSerializer(serializers.ModelSerializer):
 
 
 class AutoCaseSerializer(serializers.ModelSerializer):
-    caselinks = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    failures = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    linkages = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    autocase_failures = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     class Meta:
         fields = '__all__'
         model = AutoCase

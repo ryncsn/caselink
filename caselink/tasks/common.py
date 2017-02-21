@@ -33,7 +33,7 @@ BASE_DIR = 'caselink/backups'
 @transaction.atomic
 def init_error_checking():
     """Check for error."""
-    update_manualcase_error()
+    update_workitem_error()
     update_autocase_error()
     update_linkage_error()
 
@@ -68,8 +68,8 @@ def update_linkage_error(link=None):
 
 
 @shared_task
-def update_manualcase_error(case=None):
-    """Check for errors in manual cases"""
+def update_workitem_error(case=None):
+    """Check for errors in workitems"""
     if not case:
         cases = WorkItem.objects.all()
     else:

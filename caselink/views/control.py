@@ -78,7 +78,7 @@ def _schedule_task(task_name, async_task=True):
     tasks_map = {
         'linkage_error_check': update_linkage_error,
         'autocase_error_check': update_autocase_error,
-        'manualcase_error_check': update_manualcase_error,
+        'workitem_error_check': update_workitem_error,
         'dump_all_db': dump_all_db,
         'polarion_sync': sync_with_polarion,
     }
@@ -191,7 +191,7 @@ def create_maitai_request(request):
     if not maitai_request.is_valid():
         return JsonResponse({'message': "Invalid parameters"}, status=400)
 
-    workitem_ids = maitai_request.cleaned_data['manual_cases'].split()
+    workitem_ids = maitai_request.cleaned_data['workitems'].split()
     #TODO: multiple assignee
     assignee = maitai_request.cleaned_data['assignee'].split().pop()
     labels = maitai_request.cleaned_data['labels']

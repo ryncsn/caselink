@@ -11,7 +11,7 @@ def assignee_list():
 
 class MaitaiAutomationRequest(forms.Form):
     """Form for MaitaiAutomationRequest. """
-    manual_cases = forms.CharField(
+    workitems = forms.CharField(
         label='Manual cases(Workitems)', max_length=1023, required=True)
     assignee = forms.ChoiceField(
         label='Assignee on JIRA', required=True, choices=assignee_list,
@@ -26,15 +26,15 @@ class MaitaiAutomationRequest(forms.Form):
     def clean(self):
         cleaned_data = super(MaitaiAutomationRequest, self).clean()
         labels = cleaned_data.get("labels")
-        manual_cases = cleaned_data.get("manual_cases")
+        workitems = cleaned_data.get("workitems")
 
-        for manual_case in manual_cases.split():
+        for workitem in workitems.split():
             try:
-                wi = WorkItem.objects.get(id=manual_case)
+                wi = WorkItem.objects.get(id=workitem)
                 if wi.maitai_id:
-                    self.add_error('manual_cases', '%s already have a pending request' % manual_case)
+                    self.add_error('workitems', '%s already have a pending request' % workitem)
             except ObjectDoesNotExist:
-                self.add_error('manual_cases', '%s is not a valid manual case' % manual_case)
+                self.add_error('workitems', '%s is not a valid workitem id' % workitem)
 
 
         if " " in labels:

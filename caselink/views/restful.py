@@ -24,7 +24,7 @@ class WorkItemList(generics.ListCreateAPIView):
     queryset = WorkItem.objects.all()
     serializer_class = WorkItemSerializer
     filter_backends = (filters.DjangoFilterBackend,)
-    filter_fields = ('title', 'caselinks', 'type', 'automation', 'project', 'archs', 'errors', 'bugs')
+    filter_fields = ('title', 'linkages', 'type', 'automation', 'project', 'archs', 'errors', 'bugs')
 
     def perform_create(self, serializer):
         instance = serializer.save()
@@ -60,7 +60,7 @@ class AutoCaseList(generics.ListCreateAPIView):
     queryset = AutoCase.objects.all()
     serializer_class = AutoCaseSerializer
     filter_backends = (filters.DjangoFilterBackend,)
-    filter_fields = ('caselinks', 'failures', 'framework', 'errors', 'pr')
+    filter_fields = ('linkages', 'autocase_failures', 'framework', 'errors', 'pr')
 
     def perform_create(self, serializer):
         instance = serializer.save()
@@ -95,7 +95,7 @@ class LinkageList(generics.ListCreateAPIView):
         instance.autolink()
 
         autocases = set(instance.autocases.all())
-        for other in instance.workitem.caselinks.all():
+        for other in instance.workitem.linkages.all():
             other_autocases = set(other.autocases.all())
             if autocases > other_autocases:
                 other.delete()
@@ -191,8 +191,8 @@ class WorkItemLinkageList(APIView):
             raise Http404
 
     def get(self, request, workitem, format=None):
-        caselinks = self.get_objects(workitem)
-        serializers = [LinkageSerializer(caselink) for caselink in caselinks]
+        linkages = self.get_objects(workitem)
+        serializers = [LinkageSerializer(caselink) for caselink in linkages]
         return Response(serializer.data for serializer in serializers)
 
     def post(self, request, workitem, format=None):
@@ -256,13 +256,13 @@ class AutoLinkageageList(APIView):
     def get_objects(self, autocase):
         case = get_object_or_404(AutoCase, id=autocase)
         try:
-            return case.caselinks.all();
+            return case.linkages.all();
         except Linkage.DoesNotExist:
             raise Http404
 
     def get(self, request, autocase, format=None):
-        caselinks = self.get_objects(autocase)
-        serializers = [LinkageSerializer(caselink) for caselink in caselinks]
+        linkages = self.get_objects(autocase)
+        serializers = [LinkageSerializer(caselink) for caselink in linkages]
         return Response(serializer.data for serializer in serializers)
 
 

@@ -15,10 +15,10 @@ var vm = new Vue({
       return $.get(`/data/m2a/${caseName}/`);
     },
     refreshManualCase: function(caseName){
-      let manualCaseRowSelector = function(idx, data, node){
+      let workItemRowSelector = function(idx, data, node){
         return data.polarion == caseName;
       };
-      let row = this.dt.row(manualCaseRowSelector);
+      let row = this.dt.row(workItemRowSelector);
       this.getManualCaseData(caseName)
         .then(function(data){
           row.data(data.data[0]).draw();
@@ -57,13 +57,13 @@ var vm = new Vue({
       }
 
       var comment = linkage_modal.find('#workitem_comment').val(),
-        workitem = linkage_modal.find('#linkage_manualcase').val();
+        workitem = linkage_modal.find('#linkage_workitem').val();
 
-      console.log('PUT', '/manual/' + workitem + "/", JSON.stringify({'id': workitem, 'comment': comment}));
+      console.log('PUT', '/workitem/' + workitem + "/", JSON.stringify({'id': workitem, 'comment': comment}));
       promises.push($.ajax({
         contentType: "application/json; charset=utf-8",
         method: 'PUT',
-        url:'/manual/' + workitem + "/",
+        url:'/workitem/' + workitem + "/",
         data: JSON.stringify({'id': workitem, 'comment': comment}),
       }));
 
@@ -102,7 +102,7 @@ var vm = new Vue({
         alert("Failed to save the linkage data.");
       }).always(function(){
         button.prop('disabled', false);
-        vm.refreshManualCase(linkage_modal.find('#linkage_manualcase').val());
+        vm.refreshManualCase(linkage_modal.find('#linkage_workitem').val());
       });
     });
 
@@ -117,7 +117,7 @@ var vm = new Vue({
     });
 
     var form = maitai_automation_modal.find('form');
-    var caseInput = maitai_automation_modal.find("input[name='manual_cases']");
+    var caseInput = maitai_automation_modal.find("input[name='workitems']");
     var labelInput = maitai_automation_modal.find("input[name='labels']");
     var labelDefault = labelInput.val();
 
@@ -183,7 +183,7 @@ var vm = new Vue({
               var linkage_list = linkage_modal.find('#linkage_list').empty();
               linkage_modal.data('deleted', []);
               linkage_modal.data('row', vm.dt.row(this));
-              $.get("/manual/" + d.polarion + "/link/").done(function(data){
+              $.get("/workitem/" + d.polarion + "/link/").done(function(data){
                 $.each(data, function(idx, ele){
                   var new_item = linkage_list_item.clone();
                   new_item.find("#comment").val(ele.comment);
@@ -195,7 +195,7 @@ var vm = new Vue({
                   linkage_list.append(new_item);
                 });
               });
-              linkage_modal.find('#linkage_manualcase').val(d.polarion).prop('disabled', true);
+              linkage_modal.find('#linkage_workitem').val(d.polarion).prop('disabled', true);
               linkage_modal.modal('show');
             });
           }
@@ -238,7 +238,7 @@ var vm = new Vue({
 
       ],
       initComplete: function(){
-        var wi_select = $('#linkage_manualcase');
+        var wi_select = $('#linkage_workitem');
         vm.dt.column(function(idx, data, node){
           return $(node).text() == 'Polarion';
         }).data().each(function(d, j){

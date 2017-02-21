@@ -12,7 +12,7 @@ function _cleanEntryData() {
     bugs: [],
     description: '',
     autocase_failures: [],
-    manualcases: [],
+    workitems: [],
   };
 }
 
@@ -35,7 +35,7 @@ Vue.component('bl-entry-form', {
       });
 
       submitData.autocase_failures = failureIds;
-      submitData.manualcases = this.manualcases.filter(s => s.length > 0);
+      submitData.workitems = this.workitems.filter(s => s.length > 0);
 
       let op = () => {
         return (this.id) ? this._restAjax('PUT', `/blacklist/${this.id}/`, submitData) : this._restAjax('POST', `/blacklist/`, submitData);
@@ -57,7 +57,7 @@ Vue.component('bl-entry-form', {
       });
     },
     addManualCase: function() {
-      this.manualcases.push('');
+      this.workitems.push('');
     },
     addBug: function() {
       this.bugs.push('');
@@ -66,13 +66,13 @@ Vue.component('bl-entry-form', {
       this.autocase_failures.splice(this.autocase_failures.indexOf(item), 1);
     },
     delManualCase: function(item) {
-      this.manualcases.splice(this.manualcases.indexOf(item), 1);
+      this.workitems.splice(this.workitems.indexOf(item), 1);
     },
     delBug: function(item) {
       this.bugs.splice(this.bugs.indexOf(item), 1);
     },
     reset: function(){
-      for (var key of ['id', 'status', 'bugs', 'description', 'autocase_failures', 'manualcases']){
+      for (var key of ['id', 'status', 'bugs', 'description', 'autocase_failures', 'workitems']){
         this.$data[key] = JSON.parse(JSON.stringify((this.basedata || this.$data)[key]));
       }
     }
@@ -93,8 +93,8 @@ Vue.component('bl-entry-form', {
     autocasesValid: function(){
       return this.autocases_failures.map(x => true);
     },
-    manualcaseValid: function(){
-      return this.manualcases.map(x => true);
+    workitemValid: function(){
+      return this.workitems.map(x => true);
     },
   },
   watch: {
@@ -116,10 +116,10 @@ var vm = new Vue({
       });
     },
     refreshEntryData: function(id){
-      let manualCaseRowSelector = function(idx, data, node){
+      let workItemRowSelector = function(idx, data, node){
         return data.id == id;
       };
-      let row = this.dt.row(manualCaseRowSelector);
+      let row = this.dt.row(workItemRowSelector);
       if(row.data()) {
         this.getEntryData(id)
           .then(function(data){
@@ -210,7 +210,7 @@ var vm = new Vue({
         { data: "status", },
         { data: "description", render: function( data ) { return htmlify(data); } },
         { data: "bugs", render: function( data ) { return htmlify(data.join('\n')); } },
-        { data: "manualcases", render: function( data ) { return htmlify(data.join('\n')); } },
+        { data: "workitems", render: function( data ) { return htmlify(data.join('\n')); } },
         { data: "autocase_failures", render: function( data ) { return htmlify(data.map(d=>d.autocases.join('\n')).join('\n')); } },
         { data: "errors", render: function( data ) { return htmlify(data.join('\n')); } },
       ],

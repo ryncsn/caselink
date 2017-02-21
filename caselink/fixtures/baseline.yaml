@@ -284,11 +284,11 @@
 - model: caselink.bug
   pk: 'BUG-03'
   fields:
-    manualcases: [DEVEL-3]
+    workitems: [DEVEL-3]
 - model: caselink.bug
   pk: 'BUG-04'
   fields:
-    manualcases: [DEVEL-4]
+    workitems: [DEVEL-4]
 - model: caselink.autocasefailure
   pk: 1
   fields: {type: BUG, framework: debug-framework, bug: 'BUG-03', failure_regex: '.*', autocase_pattern: c}

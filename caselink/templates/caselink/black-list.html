@@ -101,10 +101,10 @@
 
                 <div id="Manual Cases" style="margin-top: 10px; padding-top: 10px;">
                     <h3>Manual Cases</h3>
-                    <div v-for="n in manualcases.length">
-                        <button type="button" class="close" aria-label="Close" v-on:click="delManualCase(manualcases[n-1])"><span aria-hidden="true">&times;</span></button>
+                    <div v-for="n in workitems.length">
+                        <button type="button" class="close" aria-label="Close" v-on:click="delManualCase(workitems[n-1])"><span aria-hidden="true">&times;</span></button>
                         <label for="workitemID">Workitem ID</label>
-                        <input id="workitemID" type="text" class="form-control" v-model="manualcases[n-1]" placeholder="Workitem ID to match">
+                        <input id="workitemID" type="text" class="form-control" v-model="workitems[n-1]" placeholder="Workitem ID to match">
                     </div>
                     <button type="button" class="btn btn-success form-control" v-on:click="addManualCase">Add</button>
                 </div>

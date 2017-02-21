@@ -107,7 +107,7 @@ class WorkItem(models.Model):
         """Get related objects for error cheking"""
         return (
             list(self.error_related.all()) +
-            list(self.caselinks.all())
+            list(self.linkages.all())
         )
 
     def mark_deleted(self):
@@ -187,7 +187,7 @@ class AutoCase(models.Model):
     def get_related(self):
         """Get related objects for error cheking"""
         return (
-            list(self.caselinks.all())
+            list(self.linkages.all())
         )
 
     def __str__(self):
@@ -211,10 +211,10 @@ class AutoCase(models.Model):
 
         self.errors.clear()
 
-        if len(self.caselinks.all()) < 1:
+        if len(self.linkages.all()) < 1:
             self.errors.add("NO_LINKAGE")
 
-        if len(self.caselinks.all()) > 1:
+        if len(self.linkages.all()) > 1:
             self.errors.add("MULTIPLE_WORKITEM")
 
         if depth > 0:
@@ -230,12 +230,12 @@ class AutoCase(models.Model):
 
 
 class Linkage(models.Model):
-    workitem = models.ForeignKey(WorkItem, on_delete=models.PROTECT, null=True, related_name='caselinks')
-    autocases = models.ManyToManyField(AutoCase, blank=True, related_name='caselinks')
+    workitem = models.ForeignKey(WorkItem, on_delete=models.PROTECT, null=True, related_name='linkages')
+    autocases = models.ManyToManyField(AutoCase, blank=True, related_name='linkages')
     autocase_pattern = models.CharField(max_length=65535)
     framework = models.ForeignKey(Framework, on_delete=models.PROTECT, null=True,
-                                  related_name='caselinks')
-    errors = models.ManyToManyField(Error, blank=True, related_name='caselinks')
+                                  related_name='linkages')
+    errors = models.ManyToManyField(Error, blank=True, related_name='linkages')
 
     #Field used to perform runtime error checking
     error_related = models.ManyToManyField('self', blank=True)
@@ -312,11 +312,11 @@ class BlackListEntry(models.Model):
     status = models.CharField(max_length=255, null=True)
     description = models.TextField(blank=True)
     bugs = models.ManyToManyField('Bug', blank=True, related_name='black_list_entries')
-    manualcases = models.ManyToManyField('WorkItem', blank=True, related_name='black_list_entries')
+    workitems = models.ManyToManyField('WorkItem', blank=True, related_name='black_list_entries')
     autocase_failures = models.ManyToManyField('AutoCaseFailure', related_name='black_list_entries')
     errors = models.ManyToManyField(Error, blank=True, related_name='black_list_entries')
 
-    _min_dump = ('status', 'description', 'bugs', 'manualcases', 'autocase_failures' )
+    _min_dump = ('status', 'description', 'bugs', 'workitems', 'autocase_failures' )
 
     _types = ['bug', 'bug-skip', 'case-update-skip', 'case-update', ] #TODO
     _bug_types = ['bug', 'bug-skip', 'case-update-skip', 'case-update', ] #TODO

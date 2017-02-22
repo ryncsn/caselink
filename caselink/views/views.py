@@ -271,7 +271,7 @@ def bl_data(request, pk=None):
                 'description': entry['description'],
                 'bugs': [],
                 'errors': [],
-                'workitesm': [],
+                'workitems': [],
                 'autocase_failures': [],
             })
         for key in ['errors', ]:
@@ -314,7 +314,7 @@ def bl_data(request, pk=None):
         select
         caselink_blacklistentry.id AS "id",
         caselink_autocasefailure.autocase_pattern AS "autocase_pattern",
-        caselink_autocasefailure.failure_regex AS "failure_regexes",
+        caselink_autocasefailure.failure_regex AS "failure_regex",
         caselink_autocase.id AS "autocases"
         from
         ((((
@@ -324,7 +324,7 @@ def bl_data(request, pk=None):
         left join caselink_autocasefailure_autocases on caselink_autocasefailure_autocases.autocasefailure_id = caselink_autocasefailure.id)
         left join caselink_autocase on caselink_autocase.id = caselink_autocasefailure_autocases.autocase_id)
         where 1 = 1 %s
-        order by "id", "autocase_pattern", "failure_regexes";
+        order by "id", "autocase_pattern", "failure_regex";
     """
     sql, params = (sql % "and caselink_blacklistentry.id = %s", [pk]) if pk else (sql % "", [])
     cursor.execute(sql, params)
@@ -336,12 +336,12 @@ def bl_data(request, pk=None):
         autocase_failures = json_list[pos]['autocase_failures']
         last_failure = autocase_failures and autocase_failures[-1]
         autocase_pattern = entry['autocase_pattern']
-        failure_regexes = entry['failure_regexes']
+        failure_regex = entry['failure_regex']
         autocase = entry['autocases']
-        if not last_failure or last_failure['autocase_pattern'] != autocase_pattern or last_failure['failure_regexes'] != failure_regexes:
+        if not last_failure or last_failure['autocase_pattern'] != autocase_pattern or last_failure['failure_regex'] != failure_regex:
             autocase_failures.append({
                 'autocase_pattern': autocase_pattern,
-                'failure_regex': failure_regexes,
+                'failure_regex': failure_regex,
                 'autocases': [autocase] if autocase else [],
             })
         else:

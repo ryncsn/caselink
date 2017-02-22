@@ -5,7 +5,7 @@
   pk: debug-project
   fields: {name: Debug Project}
 - model: caselink.document
-  pk: debug_document
+  pk: debug-document
   fields: {title: Debug Document}
 - model: caselink.component
   pk: libvirt
@@ -24,7 +24,7 @@
     maitai_id: ''
     archs: ['x86_64']
     updated: 2016-11-12T22:16:05.715662
-    documents: [debug_document]
+    documents: [debug-document]
 - model: caselink.workitem
   pk: DEVEL-2
   fields:
@@ -36,7 +36,7 @@
     maitai_id: ''
     archs: ['x86_64']
     updated: 2016-11-12T22:16:05.715662
-    documents: [debug_document]
+    documents: [debug-document]
 - model: caselink.workitem
   pk: DEVEL-3
   fields:
@@ -48,7 +48,7 @@
     maitai_id: ''
     archs: ['x86_64']
     updated: 2016-11-12T22:16:05.715662
-    documents: [debug_document]
+    documents: [debug-document]
 - model: caselink.workitem
   pk: DEVEL-4
   fields:
@@ -60,7 +60,7 @@
     maitai_id: ''
     archs: ['x86_64']
     updated: 2016-11-12T22:16:05.715662
-    documents: [debug_document]
+    documents: [debug-document]
 - model: caselink.workitem
   pk: DEVEL-5
   fields:
@@ -72,7 +72,7 @@
     maitai_id: ''
     archs: ['x86_64']
     updated: 2016-11-12T22:16:05.715662
-    documents: [debug_document]
+    documents: [debug-document]
 - model: caselink.autocase
   pk: a.pass.0.test
   fields:
@@ -283,18 +283,25 @@
   fields: {workitem: DEVEL-4, autocase_pattern: e, framework: debug-framework}
 - model: caselink.bug
   pk: 'BUG-03'
-  fields:
-    workitems: [DEVEL-3]
+  fields: {}
 - model: caselink.bug
   pk: 'BUG-04'
-  fields:
-    workitems: [DEVEL-4]
+  fields: {}
+- model: caselink.blacklistentry
+  pk: 1
+  fields: {status: bug, description: entry-1, bugs: ['BUG-03'], workitems: ['DEVEL-3'], autocase_failures: [1]}
+- model: caselink.blacklistentry
+  pk: 2
+  fields: {status: bug, description: entry-2, bugs: ['BUG-04'], workitems: ['DEVEL-4'], autocase_failures: [2]}
+- model: caselink.blacklistentry
+  pk: 3
+  fields: {status: case-update, description: entry-3, bugs: [], workitems: [], autocase_failures: [3]}
 - model: caselink.autocasefailure
   pk: 1
-  fields: {type: BUG, framework: debug-framework, bug: 'BUG-03', failure_regex: '.*', autocase_pattern: c}
+  fields: {framework: debug-framework, failure_regex: '.*', autocase_pattern: c}
 - model: caselink.autocasefailure
   pk: 2
-  fields: {type: BUG, framework: debug-framework, bug: 'BUG-04', failure_regex: '.*', autocase_pattern: d}
+  fields: {framework: debug-framework, failure_regex: '.*', autocase_pattern: d}
 - model: caselink.autocasefailure
   pk: 3
-  fields: {type: CASE-UPDATE, framework: debug-framework, bug: null, failure_regex: '.*', autocase_pattern: e}
+  fields: {framework: debug-framework, failure_regex: '.*', autocase_pattern: e}

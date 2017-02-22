@@ -33,7 +33,6 @@ class Error(models.Model):
         return self.id + ":" + self.message
 
 
-
 class Arch(models.Model):
     name = models.CharField(max_length=255, primary_key=True)
     _min_dump = ('name')
@@ -112,11 +111,9 @@ class WorkItem(models.Model):
 
     def mark_deleted(self):
         self.errors.add("WORKITEM_DELETED")
-        self.save()
 
     def mark_notdeleted(self):
         self.errors.remove("WORKITEM_DELETED")
-        self.save()
 
     @transaction.atomic
     def error_check(self, depth=1):
@@ -255,6 +252,7 @@ class Linkage(models.Model):
         return _test_pattern_match(self.autocase_pattern, auto_case.id)
 
     def autolink(self):
+        self.autocases.clear()
         for case in AutoCase.objects.all():
             if self.test_match(case):
                 self.autocases.add(case)
@@ -311,15 +309,15 @@ class Bug(models.Model):
 class BlackListEntry(models.Model):
     status = models.CharField(max_length=255, null=True)
     description = models.TextField(blank=True)
-    bugs = models.ManyToManyField('Bug', blank=True, related_name='black_list_entries')
-    workitems = models.ManyToManyField('WorkItem', blank=True, related_name='black_list_entries')
-    autocase_failures = models.ManyToManyField('AutoCaseFailure', related_name='black_list_entries')
-    errors = models.ManyToManyField(Error, blank=True, related_name='black_list_entries')
+    bugs = models.ManyToManyField('Bug', blank=True, related_name='blacklist_entries')
+    workitems = models.ManyToManyField('WorkItem', blank=True, related_name='blacklist_entries')
+    autocase_failures = models.ManyToManyField('AutoCaseFailure', related_name='blacklist_entries')
+    errors = models.ManyToManyField(Error, blank=True, related_name='blacklist_entries')
 
     _min_dump = ('status', 'description', 'bugs', 'workitems', 'autocase_failures' )
 
     _types = ['bug', 'bug-skip', 'case-update-skip', 'case-update', ] #TODO
-    _bug_types = ['bug', 'bug-skip', 'case-update-skip', 'case-update', ] #TODO
+    _bug_types = ['bug', 'bug-skip', ] #TODO
 
     def clean(self):
         assert(self._bug_types in self._types)
@@ -364,6 +362,7 @@ class AutoCaseFailure(models.Model):
         return _test_pattern_match(self.autocase_pattern, auto_case.id)
 
     def autolink(self):
+        self.autocases.clear()
         for case in AutoCase.objects.all():
             if self.test_match(case):
                 self.autocases.add(case)

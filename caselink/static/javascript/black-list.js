@@ -72,8 +72,9 @@ Vue.component('bl-entry-form', {
       this.bugs.splice(this.bugs.indexOf(item), 1);
     },
     reset: function(){
+      let newData = JSON.parse(JSON.stringify(this.basedata || _cleanEntryData()));
       for (var key of ['id', 'status', 'bugs', 'description', 'autocase_failures', 'workitems']){
-        this.$data[key] = JSON.parse(JSON.stringify((this.basedata || this.$data)[key]));
+        this.$data[key] = newData[key];
       }
     }
   },

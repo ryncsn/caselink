@@ -370,6 +370,7 @@ def sync_with_polarion():
         wi.mark_deleted()
         mark_deleting_set.add(wi_id)
         deleting_set.discard(wi_id)
+        wi.save()
 
     for wi_id in updating_set:
         with transaction.atomic():

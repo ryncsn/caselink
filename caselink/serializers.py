@@ -32,7 +32,7 @@ class LinkageSerializer(serializers.ModelSerializer):
 
 class WorkItemSerializer(serializers.ModelSerializer):
     linkages = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-    bugs = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    blacklist_entries = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     patterns = serializers.SerializerMethodField()
 
     def get_patterns(self, wi):
@@ -64,6 +64,7 @@ class BugSerializer(serializers.ModelSerializer):
 
 
 class AutoCaseFailureSerializer(serializers.ModelSerializer):
+    blacklist_entries = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
     class Meta:
         fields = '__all__'
         model = AutoCaseFailure

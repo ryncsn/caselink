@@ -23,6 +23,7 @@ Vue.component('bl-entry-form', {
   props: ['basedata', ],
   methods: {
     save: function() {
+      $('#bl-entry-add-modal button').prop('disabled', true); //TODO
       let submitData = JSON.parse(JSON.stringify(this.$data));
       let failureIds = [];
 
@@ -43,7 +44,13 @@ Vue.component('bl-entry-form', {
       Promise.all(bugsCreated.concat(failuresCreated)).then(op)
         .then(data => {
           this.$emit("save", data.id);
-        });
+          $('#bl-entry-add-modal button').prop('disabled', false); //TODO
+        })
+        .catch(err => {
+          alert(`Failed with ${JSON.stringify(err.responseText)}`);
+          $('#bl-entry-add-modal button').prop('disabled', false); //TODO
+        })
+      ;
     },
     abandon: function() {
       this.$emit("abandon", null);

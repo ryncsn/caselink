@@ -286,7 +286,7 @@ def bl_data(request, pk=None):
         ((
         caselink_blacklistentry
         inner join caselink_blacklistentry_workitems on caselink_blacklistentry_workitems.blacklistentry_id = caselink_blacklistentry.id)
-        leff join caselink_workitem on caselink_workitem.id = caselink_blacklistentry_workitems.workitem_id)
+        left join caselink_workitem on caselink_workitem.id = caselink_blacklistentry_workitems.workitem_id)
         where 1 = 1 %s
         order by "id";
     """
@@ -302,7 +302,7 @@ def bl_data(request, pk=None):
         ((
         caselink_blacklistentry
         inner join caselink_blacklistentry_bugs on caselink_blacklistentry_bugs.blacklistentry_id = caselink_blacklistentry.id)
-        leff join caselink_bug on caselink_bug.id = caselink_blacklistentry_bugs.bug_id)
+        left join caselink_bug on caselink_bug.id = caselink_blacklistentry_bugs.bug_id)
         where 1 = 1 %s
         order by "id";
     """
@@ -320,7 +320,7 @@ def bl_data(request, pk=None):
         ((((
         caselink_blacklistentry
         inner join caselink_blacklistentry_autocase_failures on caselink_blacklistentry_autocase_failures.blacklistentry_id = caselink_blacklistentry.id)
-        leff join caselink_autocasefailure on caselink_autocasefailure.id = caselink_blacklistentry_autocase_failures.autocasefailure_id)
+        left join caselink_autocasefailure on caselink_autocasefailure.id = caselink_blacklistentry_autocase_failures.autocasefailure_id)
         left join caselink_autocasefailure_autocases on caselink_autocasefailure_autocases.autocasefailure_id = caselink_autocasefailure.id)
         left join caselink_autocase on caselink_autocase.id = caselink_autocasefailure_autocases.autocase_id)
         where 1 = 1 %s

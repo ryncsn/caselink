@@ -24,7 +24,7 @@ class WorkItemList(generics.ListCreateAPIView):
     queryset = WorkItem.objects.all()
     serializer_class = WorkItemSerializer
     filter_backends = (filters.DjangoFilterBackend,)
-    filter_fields = ('title', 'linkages', 'type', 'automation', 'project', 'archs', 'errors', 'bugs')
+    filter_fields = ('title', 'linkages', 'type', 'automation', 'project', 'archs', 'errors')
 
     def perform_create(self, serializer):
         instance = serializer.save()

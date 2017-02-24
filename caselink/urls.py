@@ -31,19 +31,19 @@ urlpatterns = [
     url(r'^pattern-matcher/(?P<pattern>[a-zA-Z0-9\-\._]+)$', views.pattern_matcher, name='pattern-matcher'),
 
     #RESTful APIs
-    url(r'^workitem/$', restful.WorkItemList.as_view(), name='workitem'),
-    url(r'^workitem/(?P<pk>[a-zA-Z0-9\-]+)/$', restful.WorkItemDetail.as_view(), name='workitem_detail'),
-    url(r'^workitem/(?P<workitem>[a-zA-Z0-9\-\._]+)/link/$', restful.WorkItemLinkageList.as_view(), name='workitem_link_list'),
-    url(r'^workitem/(?P<workitem>[a-zA-Z0-9\-\._]+)/link/(?P<pattern>[a-zA-Z0-9\-\.\ _]*)/$', restful.WorkItemLinkageDetail.as_view(), name='workitem_link_detail'),
+    url(r'^(manual|workitem)/$', restful.WorkItemList.as_view(), name='workitem'),
+    url(r'^(manual|workitem)/(?P<pk>[a-zA-Z0-9\-]+)/$', restful.WorkItemDetail.as_view(), name='workitem_detail'),
+    url(r'^(manual|workitem)/(?P<workitem>[a-zA-Z0-9\-\._]+)/(link|linkage)/$', restful.WorkItemLinkageList.as_view(), name='workitem_link_list'),
+    url(r'^(manual|workitem)/(?P<workitem>[a-zA-Z0-9\-\._]+)/(link|linkage)/(?P<pattern>[a-zA-Z0-9\-\.\ _]*)/$', restful.WorkItemLinkageDetail.as_view(), name='workitem_link_detail'),
 
-    url(r'^autocase/$', restful.AutoCaseList.as_view(), name='auto'),
-    url(r'^autocase/(?P<pk>[a-zA-Z0-9\-\._]+)/$', restful.AutoCaseDetail.as_view(), name='auto_detail'),
+    url(r'^(auto|autocase)/$', restful.AutoCaseList.as_view(), name='auto'),
+    url(r'^(auto|autocase)/(?P<pk>[a-zA-Z0-9\-\._]+)/$', restful.AutoCaseDetail.as_view(), name='auto_detail'),
 
     url(r'^autocase_failure/$', restful.AutoCaseFailureList.as_view(), name='auto_failure_list'),
     url(r'^autocase_failure/(?P<pk>[a-zA-Z0-9\-\._]+)/$', restful.AutoCaseFailureDetail.as_view(), name='auto_failure_detail'),
 
-    url(r'^linkage/$', restful.LinkageList.as_view(), name='link'),
-    url(r'^linkage/(?P<pk>[a-zA-Z0-9\-\._]+)/$', restful.LinkageDetail.as_view(), name='link_detail'),
+    url(r'^(link|linkage)/$', restful.LinkageList.as_view(), name='link'),
+    url(r'^(link|linkage)/(?P<pk>[a-zA-Z0-9\-\._]+)/$', restful.LinkageDetail.as_view(), name='link_detail'),
 
     url(r'^bug/$', restful.BugList.as_view(), name='bug'),
     url(r'^bug/(?P<pk>[a-zA-Z0-9\-\._]+)/$', restful.BugDetail.as_view(), name='bug_detail'),

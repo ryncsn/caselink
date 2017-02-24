@@ -50,9 +50,9 @@ var vm = new Vue({
       button.prop('disabled', true);
 
       for(var i = 0; i < deleted.length; i++){
-        console.log({method: 'DELETE', url:'/link/' + deleted[i].id + "/"});
+        console.log({method: 'DELETE', url:'/linkage/' + deleted[i].id + "/"});
         promises.push(
-          $.ajax({method: 'DELETE', url:'/link/' + deleted[i].id + "/"})
+          $.ajax({method: 'DELETE', url:'/linkage/' + deleted[i].id + "/"})
         );
       }
 
@@ -77,20 +77,20 @@ var vm = new Vue({
           framework: ele.find("#linkage_framework").val(),
         };
         if(ele.data('status') == 'exists'){
-          console.log('PUT', '/link/' + ele.data('linkage').id + "/", JSON.stringify(data));
+          console.log('PUT', '/linkage/' + ele.data('linkage').id + "/", JSON.stringify(data));
           promises.push($.ajax({
             contentType: "application/json; charset=utf-8",
             method: 'PUT',
-            url:'/link/' + ele.data('linkage').id + "/",
+            url:'/linkage/' + ele.data('linkage').id + "/",
             data: JSON.stringify(data),
           }));
         }
         if(ele.data('status') == 'new'){
-          console.log('POST', '/link/', JSON.stringify(data));
+          console.log('POST', '/linkage/', JSON.stringify(data));
           promises.push($.ajax({
             contentType: "application/json; charset=utf-8",
             method: 'POST',
-            url:'/link/',
+            url:'/linkage/',
             data: JSON.stringify(data),
           }));
         }

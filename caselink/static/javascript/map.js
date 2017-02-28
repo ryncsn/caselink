@@ -12,7 +12,7 @@ var vm = new Vue({
   watch: {},
   delimiters: ['${', '}'],
   mounted: function(){
-    $.get("data?type=m2a")
+    $.get("data/m2a/")
       .done(function(data){
         let workitems = data.data.filter((a) => {return a.cases.length > 0;}),
           autoDict = workitems.reduce((a, b) => {(b.cases.reduce((x, y) => {return a[y]?a[y].count += 1: a[y] = {case: y, count: 1};}, null)); return a;}, {}),

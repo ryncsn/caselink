@@ -6,6 +6,7 @@ from django.db import connection
 
 from caselink.form import MaitaiAutomationRequest
 from caselink.models import *
+from caselink.models import _test_pattern_match
 from caselink.serializers import *
 
 
@@ -35,7 +36,7 @@ def index(request):
 def pattern_matcher(request, pattern=''):
     ret = []
     def _collect_case(test_case):
-        if test_pattern_match(pattern, test_case.id):
+        if _test_pattern_match(pattern, test_case.id):
             ret.append(test_case.id)
             if len(ret) > 100:
                 return False

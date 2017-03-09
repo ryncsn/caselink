@@ -53,7 +53,7 @@ class Workflow(object):
                             verify=False)
 
         if res.status_code != 200:
-            raise WorkflowException('Maitai server internal error, detail: %s', res.text)
+            raise WorkflowException('Maitai server internal error, detail: %s' % res.text)
 
         ret = {}
         root = ET.fromstring(res.content)

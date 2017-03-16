@@ -403,9 +403,12 @@ def sync_with_polarion():
                                          comment="Caselink Changed: %s" % workitem_changes
                                          )
                     if not workitem.maitai_id:
-                        info_maitai_workitem_changed(workitem)
                         # Mark as changed on caselink
+                        info_maitai_workitem_changed(workitem)
                         workitem.changes = workitem_changes
+                        add_jira_comment(workitem.jira_id,
+                                         comment="Caselink Changed: %s" % workitem_changes
+                                         )
                     else:
                         pass
                         #raise RuntimeError("Automated Workitem have a pending maitai progress")

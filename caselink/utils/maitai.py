@@ -1,6 +1,8 @@
 import os
 import requests
+import time
 from django.conf import settings
+from caselink.models import WorkItem
 
 import xml.etree.ElementTree as ET
 
@@ -35,6 +37,7 @@ class Workflow(object):
         self.definition = ''
         self.version = ''
         self.params = {}
+        self.timeout = 10
 
     def _gen_url(self):
         return ("%s/business-central/rest/runtime/%s/process/%s"
@@ -62,12 +65,26 @@ class Workflow(object):
 
         return ret
 
+    def _wait(self):
+        return False
+
     def start(self):
-        return self._start()
+        ret = self._start()
+        for i in range(self.timeout + 1):
+            if self._wait():
+                time.sleep(1)
+            else:
+                break
+            if i >= self.timeout:
+                raise WorkflowException("Waiting for condition timed out")
+
+        return ret
 
 
 class CaseAddWorkflow(Workflow):
     def __init__(self, workitem_id, workitem_title, assignee=None, label=None, parent_issue=None):
+        super(CaseAddWorkflow, self).__init__()
+        self.workitem_id = workitem_id
         self.enable = settings.CASELINK_MAITAI['CASEADD_ENABLE']
         self.definition = settings.CASELINK_MAITAI['CASEADD_DEFINITION']
         parent_issue = parent_issue or DEFAULT_PARENT_ISSUE
@@ -84,9 +101,14 @@ class CaseAddWorkflow(Workflow):
             "map_parentIssueKey": parent_issue,
         }
 
+    def _wait(self):
+        workitem = WorkItem.objects.get(id=self.workitem_id)
+        return not workitem.jira_id
+
 
 class CaseUpdateWorkflow(Workflow):
     def __init__(self, workitem_id, workitem_title, assignee=None, label=None, parent_issue=None):
+        super(CaseUpdateWorkflow, self).__init__()
         self.enable = settings.CASELINK_MAITAI['CASEUPDATE_ENABLE']
         self.definition = settings.CASELINK_MAITAI['CASEUPDATE_DEFINITION']
         parent_issue = parent_issue or DEFAULT_PARENT_ISSUE
@@ -102,3 +124,14 @@ class CaseUpdateWorkflow(Workflow):
             "map_issueLabels": label,
             "map_parentIssueKey": parent_issue,
         }
+
+        self.workitem_id = workitem_id
+        self.workitem = WorkItem.objects.get(id=self.workitem_id)
+        self.workitem.jira_id = None
+        self.workitem.save()
+
+    def _wait(self):
+        workitem = WorkItem.objects.get(id=self.workitem_id)
+        return not workitem.jira_id
+
+

@@ -290,9 +290,8 @@ def sync_with_polarion():
         return settings.CASELINK_POLARION['REASON']
 
     current_polarion_workitems = load_polarion(PROJECT, SPACES)
-    current_caselink_workitems = models.WorkItem.objects.all()
     polarion_set = set(current_polarion_workitems.keys())
-    caselink_set = set(current_caselink_workitems.values_list('id', flat=True))
+    caselink_set = set(models.WorkItem.objects.all().values_list('id', flat=True))
 
     updating_set = polarion_set & caselink_set
     deleting_set = caselink_set - polarion_set
@@ -373,12 +372,15 @@ def sync_with_polarion():
         wi.save()
 
     for wi_id in updating_set:
-        with transaction.atomic():
-            wi = current_polarion_workitems[wi_id]
-            workitem = models.WorkItem.objects.get(id=wi_id)
+        wi = current_polarion_workitems[wi_id]
+        workitem = models.WorkItem.objects.get(id=wi_id)
 
-            # In case a old deleted case show up again in polarion.
-            workitem.mark_notdeleted()
+        # In case a old deleted case show up again in polarion.
+        workitem.mark_notdeleted()
+
+        with transaction.atomic():
+            workitem.title = wi['title']
+            workitem.automation = wi.get('automation', workitem.automation)
 
             workitem.documents.clear()
             for doc_id in wi['documents']:
@@ -388,55 +390,45 @@ def sync_with_polarion():
                     doc.component = models.Component.objects.get_or_create(name=DEFAULT_COMPONENT)
                 doc.workitems.add(workitem)
                 doc.save()
+            workitem.save()
 
-            #TODO: Create JIRA comment
-            workitem_changes = get_recent_changes(wi_id, start_time=workitem.updated)
-            workitem_changes = filter_changes(workitem_changes)
+        workitem_changes = filter_changes(
+            get_recent_changes(wi_id, start_time=workitem.updated))
 
-            workitem.title = wi['title']
-            workitem.automation = wi.get('automation', workitem.automation)
+        if workitem_changes:
+            if workitem.jira_id:
+                add_jira_comment(workitem.jira_id,
+                                 comment="Polarion Workitem Changed: %s" % workitem_changes)
 
-            if workitem_changes:
-                if workitem.automation == 'automated':
-                    if workitem.jira_id:
-                        add_jira_comment(workitem.jira_id,
-                                         comment="Caselink Changed: %s" % workitem_changes
-                                         )
-                    if not workitem.maitai_id:
-                        # Mark as changed on caselink
-                        info_maitai_workitem_changed(workitem)
+            if workitem.automation == 'automated':
+                if not workitem.maitai_id:
+                    ret = info_maitai_workitem_changed(workitem)
+                    if not ret:
+                        # Failed to notify maitai, record the change for future needs
                         workitem.changes = workitem_changes
+                    else:
+                        workitem.save()
                         add_jira_comment(workitem.jira_id,
-                                         comment="Caselink Changed: %s" % workitem_changes
-                                         )
-                    else:
-                        pass
-                        #raise RuntimeError("Automated Workitem have a pending maitai progress")
-                elif workitem.automation != 'manualonly':
-                    if workitem.maitai_id:
-                        if workitem.jira_id:
-                            add_jira_comment(workitem.jira_id,
-                                             comment="Caselink Changed: %s" % workitem_changes
-                                             )
-                        else:
-                            # Mark as changed on caselink
-                            workitem.changes = workitem_changes
-                            #raise RuntimeError("Not automated Workitem with a pending maitai progress don't have a JIRA task")
-                    else:
-                        if workitem.jira_id:
-                            add_jira_comment(workitem.jira_id,
-                                             comment="Caselink Changed: %s" % workitem_changes
-                                             )
-                        else:
-                            # Just a normal, not automated test case, do nothing
-                            pass
+                                         comment="This issue is created for following change: %s"
+                                         % workitem_changes)
+                else:
+                    pass
+                    #raise RuntimeError("Automated Workitem have a pending maitai progress")
+            elif workitem.automation != 'manualonly':
+                if workitem.maitai_id:
+                    if not workitem.jira_id:
+                        # For some reason, workflow in progress but jira not created,
+                        # so record the change in case of future need
+                        # raise RuntimeError("Not automated Workitem with a pending maitai progress don't have a JIRA task")
+                        workitem.changes = workitem_changes
+                else:
+                    # Just a nothing special, not automated test case, do nothing
+                    pass
 
             #TODO: use comfirmed as a standlone attribute
             workitem.comfirmed = workitem.updated
-
             workitem.updated = wi['updated']
 
-            #TODO: Trigger a maitai job by checking automation and history.
             workitem.save()
             workitem.error_check()
 

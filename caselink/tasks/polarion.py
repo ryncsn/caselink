@@ -267,15 +267,19 @@ def filter_changes(changes):
 
 
 def info_maitai_workitem_changed(workitem, assignee=None, labels=None):
+    workitem.save()
     workflow = CaseUpdateWorkflow(workitem.id, workitem.title,
                                   assignee=assignee, label=labels)
+
     try:
         res = workflow.start()
     except WorkflowDisabledException as error:
         return False
 
+    workitem.refresh_from_db()
     workitem.maitai_id = res['id']
     workitem.need_automation = True
+    workitem.save()
     return True
 
 
@@ -407,7 +411,6 @@ def sync_with_polarion():
                         # Failed to notify maitai, record the change for future needs
                         workitem.changes = workitem_changes
                     else:
-                        workitem.save()
                         add_jira_comment(workitem.jira_id,
                                          comment="This issue is created for following change: %s"
                                          % workitem_changes)

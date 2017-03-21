@@ -95,22 +95,6 @@ def load_polarion(project, spaces):
     return cases
 
 
-def get_history_of_wi(wi_id, project, service=None, start=None):
-    uri = 'subterra:data-service:objects:/default/%s${WorkItem}%s' % (
-        PROJECT, wi_id)
-    if service is None:
-        service = _WorkItem.session.tracker_client.service
-    changes = service.generateHistory(uri)
-    if start:
-        latest_changes = []
-        for change in changes:
-            if change.date > start:
-                latest_changes.append(change)
-        return latest_changes
-    else:
-        return changes
-
-
 def get_automation_of_wi(wi_id):
     """
     Get the automation status of a workitem.
@@ -133,27 +117,30 @@ def get_recent_changes(wi_id, service=None, start_time=None):
     """
     def suds_2_object(suds_obj):
         obj = OrderedDict()
-        for key, value in suds_obj.__dict__.items():
-            if key.startswith('_'):
-                continue
+        if not hasattr(suds_obj, '__dict__'):
+            print("Suds object with not __dict__ attribute: {}".format(suds_obj))
+        else:
+            for key, value in suds_obj.__dict__.items():
+                if key.startswith('_'):
+                    continue
 
-            if isinstance(value, suds.sax.text.Text):
-                value = literal(value.strip())
-            elif isinstance(value, (bool, int, datetime.date, datetime.datetime)):
-                pass
-            elif value is None:
-                pass
-            elif isinstance(value, list):
-                value_list = []
-                for elem in value:
-                    value_list.append(suds_2_object(elem))
-                value = value_list
-            elif hasattr(value, '__dict__'):
-                value = suds_2_object(value)
-            else:
-                print('Unhandled value type: %s' % type(value))
+                if isinstance(value, suds.sax.text.Text):
+                    value = literal(value.strip())
+                elif isinstance(value, (bool, int, datetime.date, datetime.datetime)):
+                    pass
+                elif value is None:
+                    pass
+                elif isinstance(value, list):
+                    value_list = []
+                    for elem in value:
+                        value_list.append(suds_2_object(elem))
+                    value = value_list
+                elif hasattr(value, '__dict__'):
+                    value = suds_2_object(value)
+                else:
+                    print('Unhandled value type: %s' % type(value))
 
-            obj[key] = value
+                obj[key] = value
         return obj
 
     utc = pytz.UTC

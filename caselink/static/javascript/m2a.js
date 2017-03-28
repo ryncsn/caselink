@@ -19,7 +19,8 @@ var vm = new Vue({
         return data.polarion == caseName;
       };
       let row = this.dt.row(workItemRowSelector);
-      row.child().hide();
+      if (row.child())
+        row.child().hide();
       this.getManualCaseData(caseName)
         .then(function(data){
           row.data(data.data[0]).draw();

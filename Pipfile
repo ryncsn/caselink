@@ -1,0 +1,16 @@
+[[source]]
+verify_ssl = true
+url = "https://pypi.python.org/simple"
+
+[packages]
+jira = "*"
+requests = "*"
+celery = "<4.0"
+django-celery = "*"
+django-filter = "*"
+djangorestframework = "*"
+django-crispy-forms = "*"
+django-bootstrap-form = "*"
+suds = "*"
+PyYAML = "*"
+Django = "*"

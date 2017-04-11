@@ -222,7 +222,7 @@ def filter_changes(changes):
                 field = diff['fieldName']
 
                 # Ignore irrelevant properties changing
-                if field not in ['testSteps', 'teardown', 'setup', 'environment', 'description']:
+                if field not in ['testSteps']:
                     continue
 
                 if field == 'testSteps':

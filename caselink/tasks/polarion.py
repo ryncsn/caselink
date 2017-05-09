@@ -179,19 +179,22 @@ def filter_changes(changes):
             if not data:
                 return ret
             else:
-                steps = data.get('steps', {}).get('TestStep', [])
-                if not isinstance(steps, list):
-                    steps = [steps]
-                for idx, raw_step in enumerate(steps):
-                    step, result = [
-                        _convert_text(text['content'])
-                        for text in raw_step['values']['Text']]
-                    ret.extend([
-                        "Step:",
-                        step or ",<empty>",
-                        "Expected result:",
-                        result or "<empty>",
-                    ])
+                try:
+                    steps = data.get('steps', {}).get('TestStep', [])
+                    if not isinstance(steps, list):
+                        steps = [steps]
+                    for idx, raw_step in enumerate(steps):
+                        step, result = [
+                            _convert_text(text['content'])
+                            for text in raw_step['values']['Text']]
+                        ret.extend([
+                            "Step:",
+                            step or ",<empty>",
+                            "Expected result:",
+                            result or "<empty>",
+                        ])
+                except Exception:
+                    return ret
             return ret
 
         steps_before, steps_after = _get_steps_for_diff(before), _get_steps_for_diff(after)
@@ -288,6 +291,7 @@ def sync_with_polarion():
     deleting_set = caselink_set - polarion_set
     creating_set = polarion_set - caselink_set
     mark_deleting_set = set()
+    failed_set = set()
 
     direct_call = current_task.request.id is None
     if not direct_call:
@@ -363,6 +367,15 @@ def sync_with_polarion():
         wi.save()
 
     for wi_id in updating_set:
+
+        try:
+            workitem_changes = filter_changes(
+                get_recent_changes(wi_id, start_time=workitem.updated))
+        except Exception:
+            print("Failed retriving data for workitem %s" % wi_id)
+            failed_set.add(wi_id)
+            continue
+
         wi = current_polarion_workitems[wi_id]
         workitem = models.WorkItem.objects.get(id=wi_id)
 
@@ -382,9 +395,6 @@ def sync_with_polarion():
                 doc.workitems.add(workitem)
                 doc.save()
             workitem.save()
-
-        workitem_changes = filter_changes(
-            get_recent_changes(wi_id, start_time=workitem.updated))
 
         if workitem_changes:
             if workitem.jira_id:
@@ -414,7 +424,7 @@ def sync_with_polarion():
                 else:
                     # Just a nothing special, not automated test case, do nothing
                     pass
-
+        else:
             #TODO: use comfirmed as a standlone attribute
             workitem.comfirmed = workitem.updated
             workitem.updated = wi['updated']
@@ -426,5 +436,6 @@ def sync_with_polarion():
         "Created: " + ', '.join(creating_set) + "\n" +
         "Deleted: " + ', '.join(deleting_set) + "\n" +
         "Mark Deleted: " + ', '.join(mark_deleting_set) + "\n" +
-        "Updated: " + ', '.join(updating_set)
+        "Updated: " + ', '.join(updating_set) + "\n"  +
+        "Failed: " + ', '.join(failed_set)
     )

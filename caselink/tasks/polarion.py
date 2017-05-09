@@ -79,7 +79,7 @@ def load_polarion(project, spaces):
                 ('type', literal(doc.type)),
                 ('project', project),
                 ('work_items', OrderedDict()),
-                ('updated', utc.localize(doc.updated)),
+                ('updated', utc.localize(doc.updated or datetime.datetime.now())),
             ])
             wis = doc.get_work_items(None, True, fields=['work_item_id', 'type', 'title', 'updated'])
             for wi_idx, wi in enumerate(wis):
@@ -87,7 +87,7 @@ def load_polarion(project, spaces):
                     ('title', literal(wi.title)),
                     ('type', literal(wi.type)),
                     ('project', project),
-                    ('updated', utc.localize(wi.updated)),
+                    ('updated', utc.localize(wi.updated or datetime.datetime.now())),
                 ])
                 obj_doc['work_items'][literal(wi.work_item_id)] = obj_wi
             doc_dict[literal(doc.document_id)] = obj_doc

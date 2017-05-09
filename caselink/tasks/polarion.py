@@ -83,6 +83,9 @@ def load_polarion(project, spaces):
             ])
             wis = doc.get_work_items(None, True, fields=['work_item_id', 'type', 'title', 'updated'])
             for wi_idx, wi in enumerate(wis):
+                if wi is None or wi.title is None or wi.type is None or wi.updated is None:
+                    print("Invalid workitem %s" % wi)
+                    continue
                 obj_wi = OrderedDict([
                     ('title', literal(wi.title)),
                     ('type', literal(wi.type)),

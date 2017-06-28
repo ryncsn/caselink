@@ -1,5 +1,6 @@
 from django.conf import settings
 
+
 def settings_inject(request):
     return {
         'POLARION_DEFAULT_PROJECT': settings.CASELINK_POLARION['PROJECT'],

@@ -15,5 +15,8 @@ Load initial data:
 Load baseline data:
 ./manage.py loaddata ./caselink/fixtures/baseline.yaml
 
+Do init checking:
+./manage.py manualinit
+
 Run celery worker:
 celery worker -A caselink -n localhost -l info

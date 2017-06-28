@@ -29,6 +29,7 @@ class Error(models.Model):
     id = models.CharField(max_length=255, primary_key=True)
     message = models.CharField(max_length=65535, blank=True)
     _min_dump = ('id', 'message',)
+
     def __str__(self):
         return self.id + ":" + self.message
 
@@ -36,6 +37,7 @@ class Error(models.Model):
 class Arch(models.Model):
     name = models.CharField(max_length=255, primary_key=True)
     _min_dump = ('name')
+
     def __str__(self):
         return self.name
 
@@ -43,6 +45,7 @@ class Arch(models.Model):
 class Component(models.Model):
     name = models.CharField(max_length=255, primary_key=True)
     _min_dump = ('name',)
+
     def __str__(self):
         return self.name
 
@@ -50,6 +53,7 @@ class Component(models.Model):
 class Framework(models.Model):
     name = models.CharField(max_length=255, primary_key=True)
     _min_dump = ('name', )
+
     def __str__(self):
         return self.name
 
@@ -58,6 +62,7 @@ class Project(models.Model):
     id = models.CharField(max_length=255, primary_key=True)
     name = models.CharField(max_length=255)
     _min_dump = ('id', 'name',)
+
     def __str__(self):
         return self.name
 
@@ -67,6 +72,7 @@ class Document(models.Model):
     components = models.ManyToManyField(Component, blank=True)
     title = models.CharField(max_length=65535)
     _min_dump = ('id', 'component', 'title', )
+
     def __str__(self):
         return self.id
 
@@ -91,13 +97,13 @@ class WorkItem(models.Model):
     changes = models.TextField(blank=True, null=True)
     confirmed = models.DateTimeField(blank=True, null=True)
 
-    #Field used to perform runtime error checking
+    # Field used to perform runtime error checking
     error_related = models.ManyToManyField('self', blank=True)
 
     _user_data = ('comment', 'need_automation', 'maitai_id', 'jira_id', )
 
     _min_dump = ('id', 'type', 'title', 'automation', 'commit', 'project', 'archs',
-                 'documents', 'maitai_id', 'jira_id', 'updated', 'errors', 'comment', 'changes', 'confirmed') #TODO: some errors can be ignored
+                 'documents', 'maitai_id', 'jira_id', 'updated', 'errors', 'comment', 'changes', 'confirmed')  # TODO: some errors can be ignored
 
     def __str__(self):
         return self.id
@@ -176,8 +182,8 @@ class AutoCase(models.Model):
     pr = models.CharField(max_length=255, blank=True, null=True)
     errors = models.ManyToManyField(Error, blank=True, related_name='autocases')
 
-    #Field used to perform runtime error checking
-    #error_related = models.ManyToManyField('self', blank=True)
+    # Field used to perform runtime error checking
+    # error_related = models.ManyToManyField('self', blank=True)
     _min_dump = ('id', 'archs', 'framework', 'start_commit', 'end_commit', 'components',
                  'pr', 'errors')
 
@@ -202,7 +208,7 @@ class AutoCase(models.Model):
 
     @transaction.atomic
     def error_check(self, depth=1):
-        #TODO: Use external errors list for prevent certain error from being cleaned.
+        # TODO: Use external errors list for prevent certain error from being cleaned.
         add_in_pr = self.errors.filter(id="AUTOCASE_PR_NOT_MERGED").exists()
         deleted_in_pr = self.errors.filter(id="AUTOCASE_DELETED_IN_PR").exists()
 
@@ -234,7 +240,7 @@ class Linkage(models.Model):
                                   related_name='linkages')
     errors = models.ManyToManyField(Error, blank=True, related_name='linkages')
 
-    #Field used to perform runtime error checking
+    # Field used to perform runtime error checking
     error_related = models.ManyToManyField('self', blank=True)
 
     _min_dump = ('workitem', 'autocase_pattern', 'framework', )
@@ -314,10 +320,10 @@ class BlackListEntry(models.Model):
     autocase_failures = models.ManyToManyField('AutoCaseFailure', related_name='blacklist_entries')
     errors = models.ManyToManyField(Error, blank=True, related_name='blacklist_entries')
 
-    _min_dump = ('status', 'description', 'bugs', 'workitems', 'autocase_failures' )
+    _min_dump = ('status', 'description', 'bugs', 'workitems', 'autocase_failures')
 
-    _types = ['bug', 'bug-skip', 'case-update-skip', 'case-update', ] #TODO
-    _bug_types = ['bug', 'bug-skip', ] #TODO
+    _types = ['bug', 'bug-skip', 'case-update-skip', 'case-update', ]  # TODO
+    _bug_types = ['bug', 'bug-skip', ]  # TODO
 
     def clean(self):
         assert(self._bug_types in self._types)

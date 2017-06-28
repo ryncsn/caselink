@@ -191,6 +191,6 @@ CASELINK_MEMBERS = ('member1 member2')
 CASELINK_DEFAULT_ASSIGNEE = 'member1'
 
 try:
-    from caselink.settings_instance import *
+    from caselink.settings_instance import *  # noqa
 except ImportError:
     pass

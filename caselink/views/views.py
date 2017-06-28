@@ -1,13 +1,10 @@
-import logging
-
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.db import connection
 
 from caselink.form import MaitaiAutomationRequest
-from caselink.models import *
-from caselink.models import _test_pattern_match
-from caselink.serializers import *
+from caselink.models import AutoCase
+from caselink.utils.helpers import is_pattern_match
 
 
 def a2m(request):
@@ -20,12 +17,10 @@ def m2a(request):
 
 
 def bl(request):
-    form = MaitaiAutomationRequest()
     return render(request, 'caselink/black-list.html')
 
 
 def linkage_map(request):
-    form = MaitaiAutomationRequest()
     return render(request, 'caselink/map.html')
 
 
@@ -35,8 +30,9 @@ def index(request):
 
 def pattern_matcher(request, pattern=''):
     ret = []
+
     def _collect_case(test_case):
-        if _test_pattern_match(pattern, test_case.id):
+        if is_pattern_match(pattern, test_case.id):
             ret.append(test_case.id)
             if len(ret) > 100:
                 return False

@@ -12,40 +12,29 @@ from django.core.exceptions import ObjectDoesNotExist
 from caselink import models
 from caselink.utils.maitai import CaseUpdateWorkflow, WorkflowDisabledException
 from caselink.utils.jira import add_jira_comment
-from celery import shared_task, current_task
+from celery import shared_task
+from . import update_task_info
 
 if sys.version_info >= (3, 0):
     from html.parser import HTMLParser
 else:
     import HTMLParser
 
-
+PYLARION_INSTALLED = True
 try:
     from pylarion.document import Document
     from pylarion.work_item import _WorkItem
-    PYLARION_INSTALLED = True
 except ImportError:
     PYLARION_INSTALLED = False
-    pass
-
 
 PROJECT = settings.CASELINK_POLARION['PROJECT']
 SPACES = settings.CASELINK_POLARION['SPACES']
 DEFAULT_COMPONENT = 'n/a'
 
-
 try:
-    class literal(unicode):
-        pass
+    literal = unicode
 except NameError:
-    class literal(str):
-        pass
-
-
-def update_task_info(state, meta=None):
-    if current_task.request.id is not None:
-        current_task.update_state(state=(state[:35] + '..' + state[-10:]) if len(state) > 49 else state,
-                                  meta=meta)
+    literal = str
 
 
 def all_documents(project, spaces):
@@ -381,9 +370,15 @@ def sync_with_polarion():
                 for wi_id in document_wi_ids:
                     document.workitems.add(wi_id)
                 document.save()
-    except Exception:
+    except Exception as error:
         # Critical Error, can't fetch full workitem list, hence deleting is skipped, and already updated workitem is perserved
-        pass
+        return (
+            ("Progress Interrupted Due to critical error %s" % error) +
+            "Created: " + ', '.join(created_wi_ids) + "\n" +
+            "Deleted: " + ', '.join(deleted_wi_ids) + "\n" +
+            "Updated: " + ', '.join(updated_wi_ids) + "\n" +
+            "Failed: " + ', '.join(failed_wi_ids)
+        )
     else:
         update_task_info('Deleting deleted workitems...')
         deleted_wi_ids = all_caselink_wi_ids - skipped_wi_ids - updated_wi_ids - created_wi_ids - failed_wi_ids

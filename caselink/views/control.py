@@ -2,15 +2,14 @@ import os
 from django.conf import settings
 
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest, HttpResponseServerError
-from django.http import Http404
 from django.db import IntegrityError, OperationalError, transaction
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render_to_response
-from django.shortcuts import get_object_or_404
-from django import forms
 
-from caselink.models import *
-from caselink.tasks.common import *
+from caselink.models import (
+    WorkItem)
+from caselink.tasks.common import (
+    backup_all_db, update_workitem_error, update_autocase_error, update_linkage_error, clean_and_restore)
 from caselink.tasks.polarion import sync_with_polarion
 from caselink.utils.maitai import CaseAddWorkflow, WorkflowDisabledException, WorkflowException
 
@@ -23,16 +22,17 @@ from caselink.form import MaitaiAutomationRequest
 BASE_DIR = settings.BASE_DIR
 BACKUP_DIR = BASE_DIR + "/caselink/backups"
 
+
 def _get_tasks():
-    workers = inspect(['celery@localhost']).active()
+    workers = inspect(['celery@localhost']).active()  # TODO: only support local worker
     if workers is None:
         return None
     return workers.items()
 
 
-def _get_finished_tasks_results(number):
+def _get_finished_tasks_results(limit):
     ret = []
-    task_metas = TaskMeta.objects.order_by('-date_done')[0:number-1]
+    task_metas = TaskMeta.objects.order_by('-date_done')[0:-1]
     for i in task_metas:
         ret.append(i.to_dict())
         ret[-1]['result'] = "%s" % ret[-1]['result']
@@ -44,7 +44,7 @@ def _get_running_tasks_status():
     _tasks = _get_tasks()
     if not _tasks:
         return {}
-    for worker, tasks in _tasks:
+    for worker, tasks in _tasks.item():
         for task in tasks:
             res = AsyncResult(task['id'])
             task_status.append({
@@ -79,7 +79,7 @@ def _schedule_task(task_name, async_task=True):
         'linkage_error_check': update_linkage_error,
         'autocase_error_check': update_autocase_error,
         'workitem_error_check': update_workitem_error,
-        'dump_all_db': dump_all_db,
+        'dump_all_db': backup_all_db,
         'polarion_sync': sync_with_polarion,
     }
     if task_name in tasks_map:
@@ -133,7 +133,7 @@ def trigger(request):
     tasks = request.GET.getlist('trigger', [])
 
     if cancel:
-        result = _cancel_task()
+        results = _cancel_task()
     elif len(tasks) > 0:
         for task in tasks:
             results[task] = _schedule_task(task, async_task=async)
@@ -143,8 +143,8 @@ def trigger(request):
 
 def backup(request):
     return JsonResponse({
-        'message': 'Not implemented'}
-    )
+        'message': 'Not implemented'
+    })
 
 
 def backup_instance(request, filename=None):
@@ -169,8 +169,8 @@ def restore(request, filename=None):
     clean_and_restore.apply_async((BACKUP_DIR + "/" + filename,))
     return JsonResponse({
         'filename': filename,
-        'message': 'queued'}
-    )
+        'message': 'queued'
+    })
 
 
 def upload(request):
@@ -192,7 +192,7 @@ def create_maitai_request(request):
         return JsonResponse({'message': "Invalid parameters"}, status=400)
 
     workitem_ids = maitai_request.cleaned_data['workitems'].split()
-    #TODO: multiple assignee
+    # TODO: multiple assignee
     assignee = maitai_request.cleaned_data['assignee'].split().pop()
     labels = maitai_request.cleaned_data['labels']
     parent_issue = maitai_request.cleaned_data['parent_issue']

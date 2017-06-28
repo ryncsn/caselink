@@ -1,5 +1,6 @@
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from caselink.tasks.common import init_linkage, init_error_checking
+
 
 class Command(BaseCommand):
     help = 'Manually initialize database, create linkage and mark error.'

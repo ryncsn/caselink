@@ -1,18 +1,20 @@
 import logging
-
-import django_filters
 from rest_framework import filters
-
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import status
 
-from caselink.models import *
-from caselink.serializers import *
+from caselink.models import (
+    WorkItem, AutoCase, Linkage, Bug, Arch, BlackListEntry, AutoCaseFailure,
+    Framework, Component)
+from caselink.serializers import (
+    WorkItemSerializer, AutoCaseSerializer, LinkageSerializer,
+    BugSerializer, ArchSerializer, BlackListEntrySerializer,
+    AutoCaseFailureSerializer, WorkItemLinkageSerializer,
+    FrameworkSerializer, ComponentSerializer)
 from caselink.utils.jira import add_jira_comment
 
 
@@ -42,12 +44,11 @@ class WorkItemDetail(generics.RetrieveUpdateDestroyAPIView):
                 if add_jira_comment(instance.jira_id, instance.changes):
                     instance.changes = None
                     instance.save()
-            except Exception as error:
+            except Exception:
                 LOGGER.error("Failed to add comment for WI %s, Jira task %s",
                              instance.id, instance.jira_id)
         instance.save()
         instance.error_check(depth=1)
-
 
     def perform_destroy(self, instance):
         related = instance.get_related()
@@ -83,6 +84,7 @@ class AutoCaseDetail(generics.RetrieveUpdateDestroyAPIView):
         instance.delete()
         for item in related:
             item.error_check(depth=0)
+
 
 class LinkageList(generics.ListCreateAPIView):
     queryset = Linkage.objects.all()
@@ -130,7 +132,6 @@ class AutoCaseFailureList(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         instance = serializer.save()
         instance.autolink()
-        #instance.error_check(depth=1)
 
 
 class AutoCaseFailureDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -140,13 +141,9 @@ class AutoCaseFailureDetail(generics.RetrieveUpdateDestroyAPIView):
     def perform_update(self, serializer):
         instance = serializer.save()
         instance.autolink()
-        #instance.error_check(depth=1)
 
     def perform_destroy(self, instance):
-        #related = instance.get_related()
         instance.delete()
-        #for item in related:
-        #    item.error_check(depth=0)
 
 
 class BugList(generics.ListCreateAPIView):
@@ -171,9 +168,7 @@ class BlackListDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = BlackListEntrySerializer
 
 
-
 # Shortcuts RESTful APIs
-
 class WorkItemLinkageList(APIView):
     """
     Retrieve, update or delete a caselink instance of a workitem.
@@ -256,7 +251,7 @@ class AutoLinkageageList(APIView):
     def get_objects(self, autocase):
         case = get_object_or_404(AutoCase, id=autocase)
         try:
-            return case.linkages.all();
+            return case.linkages.all()
         except Linkage.DoesNotExist:
             raise Http404
 
@@ -272,23 +267,28 @@ class FrameworkList(generics.ListCreateAPIView):
     serializer_class = FrameworkSerializer
     filter_backends = (filters.DjangoFilterBackend,)
 
+
 class FrameworkDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Framework.objects.all()
     serializer_class = FrameworkSerializer
+
 
 class ComponentList(generics.ListCreateAPIView):
     queryset = Component.objects.all()
     serializer_class = ComponentSerializer
     filter_backends = (filters.DjangoFilterBackend,)
 
+
 class ComponentDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Component.objects.all()
     serializer_class = ComponentSerializer
+
 
 class ArchList(generics.ListCreateAPIView):
     queryset = Arch.objects.all()
     serializer_class = ArchSerializer
     filter_backends = (filters.DjangoFilterBackend,)
+
 
 class ArchDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Arch.objects.all()

@@ -1,37 +1,9 @@
 from django.utils.translation import ugettext_lazy as _
 from django.core.exceptions import ValidationError
-from django.db import transaction, models
+from django.db import models
 
-
-def _test_pattern_match(pattern, casename):
-    """
-    Test if a autocase match with the name pattern.
-    """
-    segments = pattern.split('..')
-    items = casename.split('.')
-    idx = 0
-    for segment in segments:
-        seg_items = segment.split('.')
-        try:
-            while True:
-                idx = items.index(seg_items[0])
-                if items[idx:len(seg_items)] == seg_items:
-                    items = items[len(seg_items):]
-                    break
-                else:
-                    del items[0]
-        except ValueError:
-            return False
-    return True
-
-
-class Error(models.Model):
-    id = models.CharField(max_length=255, primary_key=True)
-    message = models.CharField(max_length=65535, blank=True)
-    _min_dump = ('id', 'message',)
-
-    def __str__(self):
-        return self.id + ":" + self.message
+from caselink.utils.helpers import is_pattern_match
+from caselink.models.error import Error, ErrorCheckModel
 
 
 class Arch(models.Model):
@@ -77,7 +49,7 @@ class Document(models.Model):
         return self.id
 
 
-class WorkItem(models.Model):
+class WorkItem(ErrorCheckModel, models.Model):
     id = models.CharField(max_length=255, primary_key=True)
     type = models.CharField(max_length=255, blank=True)
     title = models.CharField(max_length=65535, blank=True)
@@ -108,7 +80,7 @@ class WorkItem(models.Model):
     def __str__(self):
         return self.id
 
-    def get_related(self):
+    def get_error_related(self):
         """Get related objects for error cheking"""
         return (
             list(self.error_related.all()) +
@@ -121,28 +93,20 @@ class WorkItem(models.Model):
     def mark_notdeleted(self):
         self.errors.remove("WORKITEM_DELETED")
 
-    @transaction.atomic
     def error_check(self, depth=1):
+        # error_related may change, so check it first
         if depth > 0:
-            # error_related may change, so check it first
             for item in self.error_related.all():
                 item.error_check(depth - 1)
 
-        self.error_related.clear()
-
-        deleted = False
-        if self.errors.filter(id="WORKITEM_DELETED").exists():
-            deleted = True
-
+        deleted = bool(self.errors.filter(id="WORKITEM_DELETED").exists())
         self.errors.clear()
 
-        cases_duplicate = WorkItem.objects.filter(title=self.title)
-        if len(cases_duplicate) > 1:
+        self.error_related.clear()
+        self.error_related.add(*list(
+            WorkItem.objects.filter(title=self.title).exclude(id=self.id)))
+        if len(self.error_related.all()) > 0:
             self.errors.add("WORKITEM_TITLE_DUPLICATE")
-            for case in cases_duplicate:
-                if case == self:
-                    continue
-                self.error_related.add(case)
 
         links = Linkage.objects.filter(workitem=self)
 
@@ -164,14 +128,13 @@ class WorkItem(models.Model):
 
         if deleted:
             self.errors.add("WORKITEM_DELETED")
+
         if depth > 0:
-            for item in self.get_related():
+            for item in self.get_error_related():
                 item.error_check(depth - 1)
 
-        self.save()
 
-
-class AutoCase(models.Model):
+class AutoCase(ErrorCheckModel, models.Model):
     id = models.CharField(max_length=65535, primary_key=True)
     archs = models.ManyToManyField(Arch, blank=True, related_name='autocases')
     components = models.ManyToManyField(Component, related_name='autocases', blank=True)
@@ -182,12 +145,10 @@ class AutoCase(models.Model):
     pr = models.CharField(max_length=255, blank=True, null=True)
     errors = models.ManyToManyField(Error, blank=True, related_name='autocases')
 
-    # Field used to perform runtime error checking
-    # error_related = models.ManyToManyField('self', blank=True)
     _min_dump = ('id', 'archs', 'framework', 'start_commit', 'end_commit', 'components',
                  'pr', 'errors')
 
-    def get_related(self):
+    def get_error_related(self):
         """Get related objects for error cheking"""
         return (
             list(self.linkages.all())
@@ -206,7 +167,6 @@ class AutoCase(models.Model):
                 link.autocases.add(self)
                 link.save()
 
-    @transaction.atomic
     def error_check(self, depth=1):
         # TODO: Use external errors list for prevent certain error from being cleaned.
         add_in_pr = self.errors.filter(id="AUTOCASE_PR_NOT_MERGED").exists()
@@ -221,7 +181,7 @@ class AutoCase(models.Model):
             self.errors.add("MULTIPLE_WORKITEM")
 
         if depth > 0:
-            for item in self.get_related():
+            for item in self.get_error_related():
                 item.error_check(depth - 1)
 
         if add_in_pr:
@@ -229,10 +189,8 @@ class AutoCase(models.Model):
         if deleted_in_pr:
             self.errors.add("AUTOCASE_DELETED_IN_PR")
 
-        self.save()
 
-
-class Linkage(models.Model):
+class Linkage(ErrorCheckModel, models.Model):
     workitem = models.ForeignKey(WorkItem, on_delete=models.PROTECT, null=True, related_name='linkages')
     autocases = models.ManyToManyField(AutoCase, blank=True, related_name='linkages')
     autocase_pattern = models.CharField(max_length=65535)
@@ -255,16 +213,25 @@ class Linkage(models.Model):
         """
         Test if a autocase match with the name pattern.
         """
-        return _test_pattern_match(self.autocase_pattern, auto_case.id)
+        return is_pattern_match(self.autocase_pattern, auto_case.id)
 
     def autolink(self):
         self.autocases.clear()
         for case in AutoCase.objects.all():
             if self.test_match(case):
                 self.autocases.add(case)
-        self.save()
+        matched_autocases = set(self.autocases.all())
+        if not matched_autocases:
+            return  # Skip invalid linakge
+        for other in self.workitem.linkages.all():
+            other_autocases = set(other.autocases.all())
+            if matched_autocases > other_autocases:
+                other.delete()
+            if matched_autocases < other_autocases:
+                self.delete()
+                return
 
-    def get_related(self):
+    def get_error_related(self):
         """Get related objects for error cheking"""
         return (
             list(self.error_related.all()) +
@@ -272,7 +239,6 @@ class Linkage(models.Model):
             list(self.autocases.all())
         )
 
-    @transaction.atomic
     def error_check(self, depth=1):
         if depth > 0:
             for item in self.error_related.all():
@@ -293,10 +259,8 @@ class Linkage(models.Model):
                 self.error_related.add(link)
 
         if depth > 0:
-            for item in self.get_related():
+            for item in self.get_error_related():
                 item.error_check(depth - 1)
-
-        self.save()
 
 
 class Bug(models.Model):
@@ -312,7 +276,7 @@ class Bug(models.Model):
         return "<Bug %s>" % self.id
 
 
-class BlackListEntry(models.Model):
+class BlackListEntry(ErrorCheckModel, models.Model):
     status = models.CharField(max_length=255, null=True)
     description = models.TextField(blank=True)
     bugs = models.ManyToManyField('Bug', blank=True, related_name='blacklist_entries')
@@ -339,7 +303,6 @@ class BlackListEntry(models.Model):
             cases += failure.autocases.all()
         return cases
 
-    @transaction.atomic
     def error_check(self, depth=1):
         # TODO
         pass
@@ -348,7 +311,7 @@ class BlackListEntry(models.Model):
         return self.status + self.description
 
 
-class AutoCaseFailure(models.Model):
+class AutoCaseFailure(ErrorCheckModel, models.Model):
     autocases = models.ManyToManyField(AutoCase, related_name="autocase_failures", blank=True)
     framework = models.ForeignKey(Framework, on_delete=models.PROTECT, null=True,
                                   related_name='autocase_failures')
@@ -365,16 +328,14 @@ class AutoCaseFailure(models.Model):
         """
         Test if a autocase match with the name pattern.
         """
-        return _test_pattern_match(self.autocase_pattern, auto_case.id)
+        return is_pattern_match(self.autocase_pattern, auto_case.id)
 
     def autolink(self):
         self.autocases.clear()
         for case in AutoCase.objects.all():
             if self.test_match(case):
                 self.autocases.add(case)
-        self.save()
 
-    @transaction.atomic
     def error_check(self, depth=1):
         # TODO
         pass

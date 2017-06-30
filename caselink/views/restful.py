@@ -28,10 +28,6 @@ class WorkItemList(generics.ListCreateAPIView):
     filter_backends = (filters.DjangoFilterBackend,)
     filter_fields = ('title', 'linkages', 'type', 'automation', 'project', 'archs', 'errors')
 
-    def perform_create(self, serializer):
-        instance = serializer.save()
-        instance.error_check(depth=1)
-
 
 class WorkItemDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = WorkItem.objects.all()
@@ -39,6 +35,7 @@ class WorkItemDetail(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_update(self, serializer):
         instance = serializer.save()
+        instance.save()
         if instance.changes and instance.jira_id:
             try:
                 if add_jira_comment(instance.jira_id, instance.changes):
@@ -47,14 +44,6 @@ class WorkItemDetail(generics.RetrieveUpdateDestroyAPIView):
             except Exception:
                 LOGGER.error("Failed to add comment for WI %s, Jira task %s",
                              instance.id, instance.jira_id)
-        instance.save()
-        instance.error_check(depth=1)
-
-    def perform_destroy(self, instance):
-        related = instance.get_related()
-        instance.delete()
-        for item in related:
-            item.error_check(depth=0)
 
 
 class AutoCaseList(generics.ListCreateAPIView):
@@ -63,27 +52,10 @@ class AutoCaseList(generics.ListCreateAPIView):
     filter_backends = (filters.DjangoFilterBackend,)
     filter_fields = ('linkages', 'autocase_failures', 'framework', 'errors', 'pr')
 
-    def perform_create(self, serializer):
-        instance = serializer.save()
-        # TODO: ignored autolink list
-        instance.autolink()
-        instance.error_check(depth=1)
-
 
 class AutoCaseDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = AutoCase.objects.all()
     serializer_class = AutoCaseSerializer
-
-    def perform_update(self, serializer):
-        instance = serializer.save()
-        instance.autolink()
-        instance.error_check(depth=1)
-
-    def perform_destroy(self, instance):
-        related = instance.get_related()
-        instance.delete()
-        for item in related:
-            item.error_check(depth=0)
 
 
 class LinkageList(generics.ListCreateAPIView):
@@ -91,36 +63,10 @@ class LinkageList(generics.ListCreateAPIView):
     serializer_class = LinkageSerializer
     filter_backends = (filters.DjangoFilterBackend,)
 
-    def perform_create(self, serializer):
-        # TODO: avoid creating when duplicated
-        instance = serializer.save()
-        instance.autolink()
-
-        autocases = set(instance.autocases.all())
-        for other in instance.workitem.linkages.all():
-            other_autocases = set(other.autocases.all())
-            if autocases > other_autocases:
-                other.delete()
-            if autocases < other_autocases:
-                instance.delete()
-                return
-        instance.error_check(depth=1)
-
 
 class LinkageDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Linkage.objects.all()
     serializer_class = LinkageSerializer
-
-    def perform_update(self, serializer):
-        instance = serializer.save()
-        instance.autolink()
-        instance.error_check(depth=1)
-
-    def perform_destroy(self, instance):
-        related = instance.get_related()
-        instance.delete()
-        for item in related:
-            item.error_check(depth=0)
 
 
 class AutoCaseFailureList(generics.ListCreateAPIView):
@@ -129,21 +75,10 @@ class AutoCaseFailureList(generics.ListCreateAPIView):
     filter_backends = (filters.DjangoFilterBackend,)
     filter_fields = ('autocases', 'failure_regex', 'autocase_pattern', 'errors')
 
-    def perform_create(self, serializer):
-        instance = serializer.save()
-        instance.autolink()
-
 
 class AutoCaseFailureDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = AutoCaseFailure.objects.all()
     serializer_class = AutoCaseFailureSerializer
-
-    def perform_update(self, serializer):
-        instance = serializer.save()
-        instance.autolink()
-
-    def perform_destroy(self, instance):
-        instance.delete()
 
 
 class BugList(generics.ListCreateAPIView):
@@ -194,9 +129,7 @@ class WorkItemLinkageList(APIView):
         request.data['workitem'] = workitem
         serializer = LinkageSerializer(data=request.data)
         if serializer.is_valid():
-            instance = serializer.save()
-            instance.autolink()
-            instance.error_check(depth=1)
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -225,18 +158,13 @@ class WorkItemLinkageDetail(APIView):
         caselink = self.get_object(workitem, pattern)
         serializer = LinkageSerializer(caselink, data=request.data)
         if serializer.is_valid():
-            instance = serializer.save()
-            instance.autolink()
-            instance.error_check(depth=1)
+            serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, workitem, pattern, format=None):
         caselink = self.get_object(workitem, pattern)
-        related = caselink.get_related()
         caselink.delete()
-        for item in related:
-            item.error_check(depth=0)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

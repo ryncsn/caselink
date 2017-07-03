@@ -10,8 +10,7 @@ from django.db import transaction
 from django.core.exceptions import ObjectDoesNotExist
 
 from caselink import models
-from caselink.utils.maitai import CaseUpdateWorkflow, WorkflowDisabledException
-from caselink.utils.jira import add_jira_comment
+from caselink.utils.jira import create_update_request, issue_updated
 from celery import shared_task
 from . import update_task_info
 
@@ -29,6 +28,7 @@ except ImportError:
 
 PROJECT = settings.CASELINK_POLARION['PROJECT']
 SPACES = settings.CASELINK_POLARION['SPACES']
+POLARION_URL = settings.CASELINK_POLARION['URL']
 DEFAULT_COMPONENT = 'n/a'
 
 try:
@@ -160,11 +160,12 @@ def filter_changes(changes):
             except Exception as error:
                 print("ERROR: %s" % error)
             finally:
-                return '\n'.join(ret)
+                return ret
         steps_before, steps_after = _get_steps_for_diff(before), _get_steps_for_diff(after)
-        return difflib.unified_diff(steps_before, steps_after)
+        return '\n'.join(difflib.unified_diff(steps_before, steps_after))
 
     summary = ""
+    authors = set()
     for change in changes:
         creation = change['creation']
         date = change['date']
@@ -191,6 +192,7 @@ def filter_changes(changes):
 
                 if field == 'testSteps':
                     summary += "User %s changed test steps at %s:\n%s\n" % (user, date, diff_test_steps(before, after))
+                    authors.add(user)
                     continue
 
                 else:
@@ -215,23 +217,7 @@ def filter_changes(changes):
                     else:
                         detail_diff = ''.join(difflib.unified_diff(before, after))
                         summary += "User %s changed %s at %s:\n%s\n" % (user, field, date, detail_diff)
-    return summary
-
-
-def info_maitai_workitem_changed(workitem, assignee=None, labels=None):
-    """
-    Please save the workitem to DB before and after calling this.
-    """
-    workflow = CaseUpdateWorkflow(workitem.id, workitem.title, assignee=assignee, label=labels)
-    try:
-        res = workflow.start()
-    except WorkflowDisabledException:
-        return False
-    workitem.refresh_from_db()
-    workitem.maitai_id = res['id']
-    workitem.need_automation = True
-    workitem.save()
-    return True
+    return summary, list(authors)
 
 
 def get_automation_of_wi(wi_id):
@@ -281,8 +267,10 @@ def create_workitem(wi):
 
 def update_workitem(wi):
     workitem = models.WorkItem.objects.get(id=wi['id'])
-    if workitem.updated == wi['updated']:
+    if workitem.updated >= wi['updated']:
         return False
+
+    print("Workitem %s changed, local version %s, new version %s" % (workitem.id, workitem.updated, wi['updated']))
 
     with transaction.atomic():
         # In case a old deleted case show up again in polarion.
@@ -291,32 +279,30 @@ def update_workitem(wi):
         workitem.automation = get_automation_of_wi(wi['id']) or workitem.automation
         workitem.save()
 
-    workitem_changes = filter_changes(get_recent_changes(wi['id'], start_time=workitem.updated))
+    workitem_changes, authors = filter_changes(get_recent_changes(wi['id'], start_time=workitem.updated))
     if workitem_changes:
-        if workitem.jira_id:
-            add_jira_comment(workitem.jira_id, comment="Polarion Workitem Changed: %s" % workitem_changes)
-
-        if workitem.automation == 'automated':
-            if not workitem.maitai_id:
-                if not info_maitai_workitem_changed(workitem):
-                    # Failed to notify maitai, record the change for future needs
-                    workitem.changes = workitem_changes
-                else:
-                    add_jira_comment(workitem.jira_id, comment="This issue is created for following change: %s"
-                                     % workitem_changes)
+        try:
+            if workitem.jira_id:
+                print("Reopenning a old issue %s for %s" % (workitem.jira_id, workitem.id))
+                issue_updated(workitem.jira_id, workitem_changes)
             else:
-                pass
-                # raise RuntimeError("Automated Workitem have a pending maitai progress")
-        elif workitem.automation != 'manualonly':
-            if workitem.maitai_id:
-                if not workitem.jira_id:
-                    # For some reason, workflow in progress but jira not created,
-                    # so record the change in case of future need
-                    # raise RuntimeError("Not automated Workitem with a pending maitai progress don't have a JIRA task")
-                    workitem.changes = workitem_changes
-            else:
-                # Just a nothing special, not automated test case, do nothing
-                pass
+                print("Creating a new issue for %s, assign to %s" % (workitem.id, authors[-1] if len(authors) > 0 else None))
+                if not workitem.automation != 'automated':
+                    print("In progress workitem %s don't have a JIRA issue " % workitem.id)
+                issue = create_update_request(workitem.id, workitem.title,
+                                              ("%s/polarion/#/project/%s/workitem?id=%s"
+                                               % (POLARION_URL, PROJECT, workitem.id)),
+                                              # Assign to the last one who edited this workitem
+                                              workitem_changes, authors[-1] if len(authors) > 0 else None)
+                if issue:
+                    print("Issued created %s" % issue.key)
+                    workitem.jira_id = issue.key  # TODO: jira_id should be jira_key
+            print("Done")
+        except Exception as error:
+            # Faied, record the change for later use
+            # TODO: record user as well
+            print(error)
+            workitem.changes = workitem_changes
 
     workitem.comfirmed = workitem.updated
     workitem.updated = wi['updated']

@@ -32,8 +32,8 @@ def _get_tasks():
 
 def _get_finished_tasks_results(limit):
     ret = []
-    task_metas = TaskMeta.objects.order_by('-date_done')[0:-1]
-    for i in task_metas:
+    task_metas = TaskMeta.objects.order_by('-date_done')
+    for i in task_metas[0:limit]:
         ret.append(i.to_dict())
         ret[-1]['result'] = "%s" % ret[-1]['result']
     return ret
@@ -44,7 +44,7 @@ def _get_running_tasks_status():
     _tasks = _get_tasks()
     if not _tasks:
         return {}
-    for worker, tasks in _tasks.item():
+    for worker, tasks in _tasks:
         for task in tasks:
             res = AsyncResult(task['id'])
             task_status.append({

@@ -179,13 +179,14 @@ CASELINK_POLARION = {
 }
 
 CASELINK_JIRA = {
-    # 'URL': URL is in pylarion
     'ENABLE': False,
+    'SERVER': 'https:///',
     'USER': '',
-    # Parameters for Polarion workitem fetching
     'PASSWORD': '',
-    'SERVER': '',
-    'PARENT_ISSUE': '',
+    'DEFAULT_PARENT_ISSUE': '',
+    'REOPEN_STATUS_ID': 10009,
+    'CHANGE_TRACK_ENABLED': False,
+    'DEFAULT_ASSIGNEE': 'kasong',
 }
 
 CASELINK_MEMBERS = ('member1 member2')

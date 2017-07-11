@@ -10,7 +10,7 @@ from django.db import transaction
 from django.core.exceptions import ObjectDoesNotExist
 
 from caselink import models
-from caselink.utils.jira import create_update_request, issue_updated
+from caselink.utils.jira import create_update_request, update_issue, get_issue_feedback
 from celery import shared_task
 from . import update_task_info
 
@@ -21,8 +21,9 @@ else:
 
 PYLARION_INSTALLED = True
 try:
-    from pylarion.document import Document
+    from pylarion.enum_option_id import EnumOptionId
     from pylarion.work_item import _WorkItem
+    from pylarion.document import Document
 except ImportError:
     PYLARION_INSTALLED = False
 
@@ -120,7 +121,7 @@ def get_recent_changes(wi_id, service=None, start_time=None):
 
 def filter_changes(changes):
     """
-    Filter out irrelevant changes, return a list of dict.
+    Filter out irrelevant changes, return a summary(string) of changed in diff format, and a list of authors.
     """
     def _convert_text(text):
         """
@@ -234,6 +235,22 @@ def get_automation_of_wi(wi_id):
     return None
 
 
+def set_automation_of_wi(wi_id, automation):
+    """
+    Get the automation status of a workitem.
+    """
+    polarion_wi = _WorkItem(project_id=PROJECT, work_item_id=wi_id)
+    if automation not in ['manualonly', 'notautomated', 'automated']:
+        raise RuntimeError("Invalud automation status: %s" % automation)
+    if not _WorkItem.session.tx_in():
+        _WorkItem.session.tx_begin()
+    polarion_wi._set_custom_field('caseautomation', EnumOptionId(enum_id=automation)._suds_object)
+    _WorkItem.session.tx_commit()
+
+
+# Polarion helper above
+
+
 def create_workitem(wi):
     with transaction.atomic():
         workitem = models.WorkItem(
@@ -282,9 +299,11 @@ def update_workitem(wi):
     workitem_changes, authors = filter_changes(get_recent_changes(wi['id'], start_time=workitem.updated))
     if workitem_changes:
         try:
+            print("Workitem steps changed, makring it notautomated")
+            set_automation_of_wi(wi['id'], 'notautomated')
             if workitem.jira_id:
-                print("Reopenning a old issue %s for %s" % (workitem.jira_id, workitem.id))
-                issue_updated(workitem.jira_id, workitem_changes)
+                print("Reopenning a old issue %s for %s, and adding comments" % (workitem.jira_id, workitem.id))
+                update_issue(workitem.jira_id, workitem_changes)
             else:
                 print("Creating a new issue for %s, assign to %s" % (workitem.id, authors[-1] if len(authors) > 0 else None))
                 if not workitem.automation != 'automated':
@@ -303,11 +322,24 @@ def update_workitem(wi):
             # TODO: record user as well
             print(error)
             workitem.changes = workitem_changes
-
-    workitem.comfirmed = workitem.updated
-    workitem.updated = wi['updated']
-    workitem.save()
+    else:
+        workitem.comfirmed = workitem.updated
+        workitem.updated = wi['updated']
+        workitem.save()
     return True
+
+
+def delete_workitem(wi_id):
+    wi = models.WorkItem.objects.get(id=wi_id)
+    related_wis = wi.error_related.all()
+    if not any([getattr(wi, data) for data in wi._user_data]):
+        if not wi.linkages.exists():
+            wi.delete()
+            for wi_r in related_wis:
+                wi_r.error_check()
+            continue
+    wi.mark_deleted()
+    wi.save()
 
 
 @shared_task
@@ -368,17 +400,8 @@ def sync_with_polarion():
     else:
         update_task_info('Deleting deleted workitems...')
         deleted_wi_ids = all_caselink_wi_ids - skipped_wi_ids - updated_wi_ids - created_wi_ids - failed_wi_ids
-        for wi_id in deleted_wi_ids.copy():
-            wi = models.WorkItem.objects.get(id=wi_id)
-            related_wis = wi.error_related.all()
-            if not any([getattr(wi, data) for data in wi._user_data]):
-                if not wi.linkages.exists():
-                    wi.delete()
-                    for wi_r in related_wis:
-                        wi_r.error_check()
-                    continue
-            wi.mark_deleted()
-            wi.save()
+        for wi_id in deleted_wi_ids:
+            delete_workitem(wi_id)
 
     return (
         "Created: " + ', '.join(created_wi_ids) + "\n" +
@@ -386,3 +409,22 @@ def sync_with_polarion():
         "Updated: " + ', '.join(updated_wi_ids) + "\n" +
         "Failed: " + ', '.join(failed_wi_ids)
     )
+
+
+@shared_task
+def check_jira():
+    for workitem in models.WorkItem.objects.filter(jira_id__isnull=False):
+        if workitem.jira_id:
+            result = get_issue_feedback(workitem.jira_id)
+            if result:
+                print("Worktiem %s, issue %s is finished")
+                if not result['cases']:
+                    raise RuntimeError('Empty test case pattern for issue %s' % workitem.jira_id)
+                for case_pattern in result['cases']:
+                    workitem.linkages.add(models.Linkage(workitem=workitem, autocase_pattern=case_pattern))
+                workitem.jira_id = None
+                set_automation_of_wi(workitem.id, 'automated')
+                workitem.save()
+            else:
+                print("Worktiem %s, issue %s is marked finished, but didn't get a expected comment, repoening")
+                update_issue(workitem.jira_id)

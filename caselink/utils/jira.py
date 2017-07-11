@@ -1,8 +1,17 @@
 from __future__ import absolute_import
+import re
 
 from jira import JIRA
 from django.conf import settings
 
+UPDATED_PATTERN_REGEX = (
+    ".*?"
+    "\s*Pull Requests:(\s*?)\n"
+    "(?P<prs>(:?\s*http\S+?\s*?\n)+)"
+    "\s*Auto Cases:(\s*?)\n"
+    "(?P<cases>(:?\s*[a-zA-Z0-9_\.]+\s*?(\n|$))+)"
+    ".*"
+)
 
 AUTOMATION_REQUEST_DESCRIPTION = """
 Please automate this manual test case:
@@ -135,7 +144,7 @@ def create_jira_issue(issue_dict, jira_connect=None):
     return jira.create_issue(dict_)
 
 
-def issue_updated(issue, changes):
+def update_issue(issue, changes=None):
     jira = _connect()
     transition_id = settings.CASELINK_JIRA['REOPEN_STATUS_ID']
     try:
@@ -143,8 +152,9 @@ def issue_updated(issue, changes):
     except Exception:
         pass
 
-    add_jira_comment(issue, 'Polarion Workitem Changed: {code}%s{code}'
-                     % changes, jira)
+    if changes:
+        add_jira_comment(issue, 'Polarion Workitem Changed: {code}%s{code}'
+                         % changes, jira)
 
 
 def create_update_request(wi_id, wi_title, wi_url, changes, assignee, parent_issue=None):
@@ -167,3 +177,22 @@ def create_update_request(wi_id, wi_title, wi_url, changes, assignee, parent_iss
             'assignee': assignee,
             'parent_issue': parent_issue
         })
+
+
+def get_issue_feedback(issue_key):
+    jira = _connect()
+    issue = jira.issue(issue_key)
+    status = str(issue.fields.status)
+    comments = issue.fields.comment.comments
+    if status == 'Resolved' or True:  # DEBUG
+        for comment in reversed(comments):
+            match = re.match(UPDATED_PATTERN_REGEX, comment.body, re.M)
+            if match:
+                return {
+                    "status": "Resolved",
+                    "cases": filter(lambda x: x, map(lambda x: x.strip(), match.groupdict()['cases'].splitlines())),
+                    "prs": filter(lambda x: x, map(lambda x: x.strip(), match.groupdict()['prs'].splitlines())),
+                }
+    return {
+        "status": status,
+    }

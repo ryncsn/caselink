@@ -65,99 +65,156 @@ or split non-automatable part out to another test case before proceeds.
 UPDATE_REQUEST_SUMMARY = "Update {polarion_wi_id}: {polarion_wi_title}"
 
 
-def _connect():
-    user = settings.CASELINK_JIRA['USER']
-    password = settings.CASELINK_JIRA['PASSWORD']
-    server = settings.CASELINK_JIRA['SERVER']
-    basic_auth = (user, password)
-    options = {
-        'server': server,
-        'verify': False,
-    }
-    return JIRA(options, basic_auth=basic_auth)
+class Jira(object):
+    """
+    jira operation class
+    """
+    def __init__(self, **args):
+        """
+        Init JIRA connection
+        """
+        self.server = settings.CASELINK_JIRA['SERVER']
+        self.username = settings.CASELINK_JIRA['USER']
+        self.password = settings.CASELINK_JIRA['PASSWORD']
+        self.verify = False  # TODO: move to settings
+        self._jira = JIRA(options={
+            'server': self.server,
+            'verify': self.verify,
+        }, basic_auth=(self.username, self.password))
 
+    def search_issues(self, project_name, jql_str, fields=None):
+        """
+        Search issue under the project and return result
+        """
+        jql_str = "project = " + project_name + " and " + jql_str
+        return self.jira_.search_issues(jql_str, maxResults=-1, fields=fields)
 
-def add_jira_comment(issue, comment, jira_connect=None):
-    jira = jira_connect or _connect()
-    if not jira:
-        return False
-    if isinstance(issue, (str, unicode)):
-        issue = jira.issue(issue)
-    return jira.add_comment(issue, comment)
+    def add_comment(self, issue, comment):
+        """
+        Add comments in the issue
+        """
+        if isinstance(issue, (str, unicode)):
+            issue = self._jira.issue(issue)
+        return self._jira.add_comment(issue, comment)
 
+    def transition_issue(self, issue, status):
+        """
+        Transition issue status to another
+        """
+        self.jira_.transition_issue(issue, status)
 
-def transition_issue(issue, status, jira_connect=None):
-    jira = jira_connect or _connect()
-    if not jira:
-        return False
-    if isinstance(issue, (str, unicode)):
-        issue = jira.issue(issue)
-    return jira.transition_issue(issue, status)
+    def get_watchers(self, issue):
+        """
+        Get a watchers Resource from the server for an issue
+        """
+        watcher_data = self.jira_.watchers(issue)
+        return [str(w.key) for w in watcher_data.watchers]
 
+    def add_watcher(self, issue, watchers):
+        """
+        Append an issue's watchers list
+        """
+        new_watchers = []
+        if isinstance(watchers, str):
+            new_watchers.append(watchers)
+        elif isinstance(watchers, list):
+            new_watchers = watchers
+        for watcher in new_watchers:
+            self.jira_.add_watcher(issue, watcher)
 
-def create_jira_issue(issue_dict, jira_connect=None):
-    jira = jira_connect or _connect()
-    if not jira:
-        return False
+    def remove_watcher(self, issue, watchers):
+        """
+        Remove watchers from an issue's watchers list
+        """
+        del_watchers = []
+        if isinstance(watchers, str):
+            del_watchers.append(watchers)
+        elif isinstance(watchers, list):
+            del_watchers = watchers
+        for watcher in del_watchers:
+            self.jira_.remove_watcher(issue, watcher)
 
-    dict_ = {
-        'project': {
-            'key': 'LIBVIRTAT',
-        },
-        'summary': None,
-        'description': None,
-        'priority': {
-            'name': 'Major',
-        },
-        'assignee': {
-            'name': None
-        },
-    }
-
-    parent_issue = issue_dict.pop('parent_issue', None) or settings.CASELINK_JIRA['DEFAULT_PARENT_ISSUE']
-    assignee = issue_dict.pop('assignee', None) or settings.CASELINK_JIRA['DEFAULT_ASSIGNEE']
-
-    dict_.update({
-        'assignee': {
-            'name': assignee
-        }
-    })
-
-    if parent_issue:
-        dict_.update({
-            'parent': {
-                'id': parent_issue
+    def create_issue(self, issue_dict):
+        """
+        Create Issue and apply some default properties
+        """
+        dict_ = {
+            'project': {
+                'key': 'LIBVIRTAT',
             },
-            'issuetype': {
-                'name': 'Sub-task'
-            }
-        })
-    else:
+            'summary': None,
+            'description': None,
+            'priority': {
+                'name': 'Major',
+            },
+            'assignee': {
+                'name': None
+            },
+        }
+
+        parent_issue = issue_dict.pop('parent_issue', None) or settings.CASELINK_JIRA['DEFAULT_PARENT_ISSUE']
+        assignee = issue_dict.pop('assignee', None) or settings.CASELINK_JIRA['DEFAULT_ASSIGNEE']
+
         dict_.update({
-            'issuetype': {
-                'name': 'Task'
+            'assignee': {
+                'name': assignee
             }
         })
 
-    dict_.update(issue_dict)
+        if parent_issue:
+            dict_.update({
+                'parent': {
+                    'id': parent_issue
+                },
+                'issuetype': {
+                    'name': 'Sub-task'
+                }
+            })
+        else:
+            dict_.update({
+                'issuetype': {
+                    'name': 'Task'
+                }
+            })
 
-    return jira.create_issue(dict_)
+        dict_.update(issue_dict)
 
+        return self._jira.create_issue(dict_)
 
-def update_issue(issue, changes=None):
-    jira = _connect()
-    transition_id = settings.CASELINK_JIRA['REOPEN_STATUS_ID']
-    try:
-        transition_issue(issue, transition_id, jira)
-    except Exception:
-        pass
+    # Helper functions
+    def update_issue(self, issue, changes=None):
+        trans = settings.CASELINK_JIRA['REOPEN_TRANSITION']
+        try:
+            if isinstance(issue, (str, unicode)):
+                issue = self._jira.issue(issue)
+            return self._jira.transition_issue(issue, trans)
+        except Exception:
+            pass
 
-    if changes:
-        add_jira_comment(issue, 'Polarion Workitem Changed: {code}%s{code}'
-                         % changes, jira)
+        if changes:
+            self.add_comment(issue, 'Polarion Workitem Changed: {code}%s{code}' % changes)
 
+    def create_automation_request(self, wi_id, wi_title, wi_url, changes, assignee, parent_issue=None):
+        description = AUTOMATION_REQUEST_DESCRIPTION.format(
+            polarion_wi_id=wi_id,
+            polarion_wi_title=wi_title,
+            polarion_wi_url=wi_url,
+        )
+        summary = AUTOMATION_REQUEST_SUMMARY.format(
+            polarion_wi_id=wi_id,
+            polarion_wi_title=wi_title
+        )
+        assignee = assignee
+        parent_issue = parent_issue
 
-def create_update_request(wi_id, wi_title, wi_url, changes, assignee, parent_issue=None):
+        return self.create_issue({
+            'summary': summary,
+            'description': description,
+            'assignee': assignee,
+            'parent_issue': parent_issue
+        })
+
+    def create_update_request(self, wi_id, wi_title, wi_url, changes, assignee, parent_issue=None):
         description = UPDATE_REQUEST_DESCRIPTION.format(
             polarion_wi_id=wi_id,
             polarion_wi_title=wi_title,
@@ -171,28 +228,31 @@ def create_update_request(wi_id, wi_title, wi_url, changes, assignee, parent_iss
         assignee = assignee
         parent_issue = parent_issue
 
-        return create_jira_issue({
+        return self.create_issue({
             'summary': summary,
             'description': description,
             'assignee': assignee,
             'parent_issue': parent_issue
         })
 
-
-def get_issue_feedback(issue_key):
-    jira = _connect()
-    issue = jira.issue(issue_key)
-    status = str(issue.fields.status)
-    comments = issue.fields.comment.comments
-    if status == 'Resolved' or True:  # DEBUG
-        for comment in reversed(comments):
-            match = re.match(UPDATED_PATTERN_REGEX, comment.body, re.M)
-            if match:
-                return {
-                    "status": "Resolved",
-                    "cases": filter(lambda x: x, map(lambda x: x.strip(), match.groupdict()['cases'].splitlines())),
-                    "prs": filter(lambda x: x, map(lambda x: x.strip(), match.groupdict()['prs'].splitlines())),
-                }
-    return {
-        "status": status,
-    }
+    def get_issue_feedback(self, issue_key):
+        issue = self._jira.issue(issue_key)
+        status = str(issue.fields.status)
+        resolution = str(issue.fields.resolution)
+        comments = issue.fields.comment.comments
+        if status == 'Done':
+            for comment in reversed(comments):
+                match = re.match(UPDATED_PATTERN_REGEX, comment.body, re.M)
+                if match:
+                    return {
+                        "status": status,
+                        "resolution": resolution,
+                        "cases": filter(lambda x: x, map(lambda x: x.strip(), match.groupdict()['cases'].splitlines())),
+                        "prs": filter(lambda x: x, map(lambda x: x.strip(), match.groupdict()['prs'].splitlines())),
+                    }
+        return {
+            "status": status,
+            "resolution": resolution,
+            "cases": None,
+            "prs": None,
+        }

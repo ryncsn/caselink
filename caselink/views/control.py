@@ -10,7 +10,7 @@ from caselink.models import (
     WorkItem)
 from caselink.tasks.common import (
     backup_all_db, update_workitem_error, update_autocase_error, update_linkage_error, clean_and_restore)
-from caselink.tasks.polarion import sync_with_polarion
+from caselink.tasks.polarion import sync_with_polarion, sync_with_jira
 from caselink.utils.maitai import CaseAddWorkflow, WorkflowDisabledException, WorkflowException
 
 from celery.task.control import inspect
@@ -81,6 +81,7 @@ def _schedule_task(task_name, async_task=True):
         'workitem_error_check': update_workitem_error,
         'dump_all_db': backup_all_db,
         'polarion_sync': sync_with_polarion,
+        'jira_sync': sync_with_jira,
     }
     if task_name in tasks_map:
         task = tasks_map[task_name]

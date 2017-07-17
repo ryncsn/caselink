@@ -100,10 +100,10 @@ WSGI_APPLICATION = 'caselink.wsgi.application'
 
 CELERYBEAT_SCHEDULE = {
     # crontab(hour=0, minute=0, day_of_week='saturday')
-    'schedule-name': {
-        'task': 'caselink.tasks.common.test_task',
-        'schedule': crontab(hour='*/1', day_of_week='mon,tue,wed,thu,fri')
-    },
+    #'schedule-name': {
+    #    'task': 'caselink.tasks.common.test_task',
+    #    'schedule': crontab(hour='*/1', day_of_week='mon,tue,wed,thu,fri')
+    #},
 }
 
 # Database
@@ -184,7 +184,7 @@ CASELINK_JIRA = {
     'USER': '',
     'PASSWORD': '',
     'DEFAULT_PARENT_ISSUE': '',
-    'REOPEN_STATUS_ID': 10009,
+    'REOPEN_TRANSITION': 'To Do',
     'CHANGE_TRACK_ENABLED': False,
     'DEFAULT_ASSIGNEE': 'kasong',
 }

@@ -15,7 +15,7 @@ from caselink.serializers import (
     BugSerializer, ArchSerializer, BlackListEntrySerializer,
     AutoCaseFailureSerializer, WorkItemLinkageSerializer,
     FrameworkSerializer, ComponentSerializer)
-from caselink.utils.jira import add_jira_comment
+from caselink.utils.jira import Jira
 
 
 LOGGER = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class WorkItemDetail(generics.RetrieveUpdateDestroyAPIView):
         instance.save()
         if instance.changes and instance.jira_id:
             try:
-                if add_jira_comment(instance.jira_id, instance.changes):
+                if Jira().add_jira_comment(instance.jira_id, instance.changes):
                     instance.changes = None
                     instance.save()
             except Exception:

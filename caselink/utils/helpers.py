@@ -1,6 +1,3 @@
-from .jira import create_jira_issue, add_jira_comment
-
-
 def is_pattern_match(pattern, casename):
     """
     Test if a autocase match with the name pattern.

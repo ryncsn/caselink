@@ -64,6 +64,7 @@ class WorkItem(ErrorCheckModel, models.Model):
     need_automation = models.BooleanField(default=False)
     maitai_id = models.CharField(max_length=65535, blank=True)
     jira_id = models.CharField(max_length=65535, blank=True, null=True)
+    jira_type = models.CharField(max_length=32, blank=True, null=True)
     updated = models.DateTimeField(blank=False, auto_now_add=True)
 
     changes = models.TextField(blank=True, null=True)

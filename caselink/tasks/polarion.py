@@ -156,8 +156,9 @@ def sync_with_polarion():
                 except ObjectDoesNotExist:
                     create_workitem(wi)
                     created_wi_ids.add(wi['id'])
-                except Exception:
+                except Exception as error:
                     print("Failed retriving data for workitem %s" % wi['id'])
+                    print(error)
                     failed_wi_ids.add(wi['id'])
 
             update_task_info('Updating document relationship...')

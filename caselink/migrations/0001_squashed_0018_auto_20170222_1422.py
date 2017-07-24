@@ -9,9 +9,6 @@ from django.utils.timezone import utc
 
 
 class Migration(migrations.Migration):
-
-    replaces = [('caselink', '0001_initial'), ('caselink', '0002_auto_20160826_0151'), ('caselink', '0003_auto_20160830_0814'), ('caselink', '0004_auto_20160831_0829'), ('caselink', '0005_auto_20160912_1006'), ('caselink', '0006_autocase_pr'), ('caselink', '0007_workitem_updated'), ('caselink', '0008_auto_20161104_0728'), ('caselink', '0009_remove_linkage_title'), ('caselink', '0010_workitem_comment'), ('caselink', '0011_workitem_jira_id'), ('caselink', '0012_auto_20161117_0524'), ('caselink', '0013_auto_20161130_0939'), ('caselink', '0014_auto_20170214_0740'), ('caselink', '0015_auto_20170217_0717'), ('caselink', '0016_auto_20170221_0648'), ('caselink', '0017_auto_20170222_0853'), ('caselink', '0018_auto_20170222_1422')]
-
     initial = True
 
     dependencies = [
